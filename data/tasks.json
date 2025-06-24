@@ -22,15 +22,21 @@
       "columns": {
         "column-1737820503477": {
           "name": "To Do",
-          "tasks": []
+          "tasks": [
+            "ToDo Task"
+          ]
         },
         "column-1737820504596": {
           "name": "Doing",
-          "tasks": []
+          "tasks": [
+            "Doing Task"
+          ]
         },
         "column-1737820919397": {
           "name": "Done",
-          "tasks": []
+          "tasks": [
+            "Done Task"
+          ]
         }
       }
     }

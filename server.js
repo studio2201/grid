@@ -969,13 +969,39 @@ const html = `<!DOCTYPE html>
         .task-content {
             flex: 1;
             min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
         }
         
         .task-text {
-            display: block;
+            flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+        
+        .task-checkmark {
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1.1em;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        
+        /* Strikethrough for Done tasks */
+        .column[data-column="done"] .task-text {
+            text-decoration: line-through !important;
+            opacity: 0.7 !important;
+            color: #888 !important;
+        }
+        
+        /* Alternative selector for debugging */
+        #done .task-text {
+            text-decoration: line-through !important;
+            opacity: 0.7 !important;
+            color: #888 !important;
         }
         
         .task.dragging {
@@ -1395,6 +1421,11 @@ const html = `<!DOCTYPE html>
                 currentBoardBtn.textContent = data.boards[currentBoard].name;
                 renderTasks();
                 updateBoardSelector();
+                
+                // IMPORTANT: Apply strikethrough after loading
+                setTimeout(() => {
+                    applyStrikethrough();
+                }, 200);
             } catch (error) {
                 console.error('Error loading tasks:', error);
                 showToast('Error loading tasks');
@@ -1602,6 +1633,10 @@ const html = `<!DOCTYPE html>
 
             // Save changes
             await saveTasks();
+            
+            // Apply strikethrough
+            applyStrikethrough();
+            
             closeTaskModal();
         });
 
@@ -1632,6 +1667,14 @@ const html = `<!DOCTYPE html>
             taskText.className = 'task-text';
             taskText.textContent = text;
             taskContent.appendChild(taskText);
+            
+            // Create checkmark for done tasks
+            const checkmark = document.createElement('span');
+            checkmark.className = 'task-checkmark';
+            checkmark.innerHTML = '✓';
+            checkmark.style.display = 'none';
+            taskContent.appendChild(checkmark);
+            
             task.appendChild(taskContent);
 
             // Double tap/click detection
@@ -1828,7 +1871,6 @@ const html = `<!DOCTYPE html>
             });
         });
 
-        // Utilities
         function updateTasksArray() {
             // Get all columns
             document.querySelectorAll('.column').forEach(column => {
@@ -1851,7 +1893,69 @@ const html = `<!DOCTYPE html>
 
             // Save changes to the server
             saveTasks();
+            
+            // ALWAYS apply strikethrough after updating
+            setTimeout(() => {
+                applyStrikethrough();
+            }, 100);
         }
+
+        function applyStrikethrough() {
+            
+            const allColumns = document.querySelectorAll('.column');
+            const lastColumn = allColumns[allColumns.length - 2]; // -2 because add-column button is last
+            
+            // Direct CSS styling with higher specificity
+            document.querySelectorAll('.task').forEach((task, index) => {
+                const column = task.closest('.column');
+                const columnId = column ? column.dataset.column : 'unknown';
+                const columnNameElement = column ? column.querySelector('.column-name') : null;
+                const columnName = columnNameElement ? columnNameElement.textContent.toLowerCase().trim() : '';
+                const taskText = task.querySelector('.task-text');
+                
+                if (taskText) {
+                    // Check if it's a "done" column ONLY by exact ID or exact name match
+                    const isDoneColumn = columnId === 'done' || columnName === 'done';
+                    
+                    const checkmark = task.querySelector('.task-checkmark');
+                    
+                    if (isDoneColumn) {
+                        taskText.style.setProperty('text-decoration', 'line-through', 'important');
+                        taskText.style.setProperty('opacity', '0.7', 'important');
+                        taskText.style.setProperty('color', '#888', 'important');
+                        taskText.classList.add('done-task');
+                        
+                        if (checkmark) {
+                            checkmark.style.display = 'inline';
+                        }
+                    } else {
+                        taskText.style.removeProperty('text-decoration');
+                        taskText.style.removeProperty('opacity');
+                        taskText.style.removeProperty('color');
+                        taskText.classList.remove('done-task');
+                        
+                        // Hide checkmark
+                        if (checkmark) {
+                            checkmark.style.display = 'none';
+                        }
+                    }
+                }
+            });
+            
+            // Add CSS class-based approach as backup for columns named "done"
+            // Original method was spotty, this is a more reliable fallback
+            document.querySelectorAll('.column').forEach(col => {
+                const colNameElement = col.querySelector('.column-name');
+                const colName = colNameElement ? colNameElement.textContent.toLowerCase().trim() : '';
+                const colId = col.dataset.column;
+                
+                if (colId === 'done' || colName === 'done') {
+                    col.classList.add('done-column');
+                } else {
+                    col.classList.remove('done-column');
+                }
+            });
+        }       
 
         async function saveTasks() {
             try {
@@ -1970,6 +2074,11 @@ const html = `<!DOCTYPE html>
 
             // Add drag and drop event listeners
             addColumnEventListeners();
+            
+            // IMPORTANT: Apply strikethrough after rendering
+            setTimeout(() => {
+                applyStrikethrough();
+            }, 100);
         }
 
         // Initialize app
