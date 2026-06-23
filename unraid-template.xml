@@ -19,7 +19,6 @@
     - Dynamic color themes (Light, Dark, Nord, Dracula, Sepia).
     - Multilingual interface support.
     - Optional access PIN encryption for privacy.
-    - Apprise webhook notification rules.
   </Overview>
   <Category>Productivity:Tools;Tools:Utilities;Network:Web;</Category>
   <WebUI>http://[IP]:[PORT:4405]/</WebUI>
@@ -39,10 +38,6 @@
   <Config Name="Site Title" Target="SITE_TITLE" Default="RustKan" Description="Custom website title rendered in the navigation header." Type="Variable" Display="always" Required="false" Mask="false">RustKan</Config>
   
   <Config Name="Allowed Origins" Target="ALLOWED_ORIGINS" Default="*" Description="Comma-separated list of allowed HTTP request origins (CORS). Use '*' to allow all origins." Type="Variable" Display="always" Required="false" Mask="false">*</Config>
-  
-  <Config Name="Apprise URL" Target="APPRISE_URL" Default="" Description="Apprise/Discord webhook URL to send board update notifications." Type="Variable" Display="always" Required="false" Mask="true"></Config>
-
-  <Config Name="Apprise Message" Target="APPRISE_MESSAGE" Default="Kanban Board updated: {action}" Description="Notification template format. Supports {action} variable." Type="Variable" Display="always" Required="false" Mask="false">Kanban Board updated: {action}</Config>
   
   <Config Name="Timezone" Target="TZ" Default="UTC" Description="Timezone for the container logs." Type="Variable" Display="advanced" Required="false" Mask="false">UTC</Config>
 </Container>

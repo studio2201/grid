@@ -24,8 +24,6 @@ services:
       - SITE_TITLE=RustKan
       - ALLOWED_ORIGINS=*
       - RUSTKAN_PIN=1234  # Optional: Set a PIN to lock board access
-      - APPRISE_URL=      # Optional: Apprise API webhook URL for notifications
-      - APPRISE_MESSAGE=Kanban Board updated: {action}
     volumes:
       - ./data:/usr/src/app/data
 ```

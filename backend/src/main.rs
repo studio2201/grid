@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path as StdPath;
 use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tracing_subscriber::prelude::*;
@@ -22,8 +22,6 @@ static START_TIME: OnceLock<Instant> = OnceLock::new();
 pub struct AppConfig {
     pub port: u16,
     pub site_title: String,
-    pub apprise_url: Option<String>,
-    pub apprise_message: String,
     pub pin: Option<String>,
 }
 
@@ -35,9 +33,6 @@ impl AppConfig {
             .and_then(|p| p.parse().ok())
             .unwrap_or(4405);
         let site_title = std::env::var("SITE_TITLE").unwrap_or_else(|_| "RustKan".to_string());
-        let apprise_url = std::env::var("APPRISE_URL").ok().filter(|s| !s.is_empty());
-        let apprise_message = std::env::var("APPRISE_MESSAGE")
-            .unwrap_or_else(|_| "Kanban Board updated: {action}".to_string());
         let pin = std::env::var("RUSTKAN_PIN")
             .or_else(|_| std::env::var("PIN"))
             .ok()
@@ -50,8 +45,6 @@ impl AppConfig {
         Self {
             port,
             site_title,
-            apprise_url,
-            apprise_message,
             pin,
         }
     }
@@ -62,7 +55,6 @@ mod static_files;
 #[derive(Clone)]
 pub struct AppState {
     config: AppConfig,
-    client: reqwest::Client,
     pub asset_manifest: std::sync::Arc<Vec<String>>,
 }
 
@@ -77,11 +69,6 @@ async fn main() {
         .init();
 
     let config = AppConfig::load();
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()
-        .expect("Failed to build reqwest client");
-
     // Initialize data storage directory and default tasks.json
     initialize_storage();
 
@@ -89,7 +76,6 @@ async fn main() {
 
     let state = AppState {
         config: config.clone(),
-        client,
         asset_manifest,
     };
 
@@ -309,11 +295,7 @@ async fn save_tasks(
     .await
     {
         Ok(_) => {
-            // Trigger Apprise notification
-            if state.config.apprise_url.is_some() {
-                let action = determine_action(&payload);
-                trigger_apprise_notification(&action, &state.config, &state.client).await;
-            }
+
             Json(serde_json::json!({ "ok": true })).into_response()
         }
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
@@ -355,36 +337,7 @@ fn safe_compare(a: &str, b: &str) -> bool {
     result == 0
 }
 
-fn determine_action(payload: &serde_json::Value) -> String {
-    // Return a descriptive update state
-    let active_board = payload
-        .get("activeBoard")
-        .and_then(|v| v.as_str())
-        .unwrap_or("work");
-    format!("Board '{}' state modified", active_board)
-}
 
-async fn trigger_apprise_notification(action: &str, config: &AppConfig, client: &reqwest::Client) {
-    let url = match &config.apprise_url {
-        Some(u) => u,
-        None => return,
-    };
-
-    let message = config.apprise_message.replace("{action}", action);
-
-    let body = serde_json::json!({
-        "urls": url,
-        "body": message,
-        "title": format!("{} Notification", config.site_title),
-    });
-
-    tracing::info!("Sending notification via Apprise to URL: {}", url);
-    let _ = client
-        .post("https://api.apprise.io/notify")
-        .json(&body)
-        .send()
-        .await;
-}
 
 fn get_cors_layer() -> CorsLayer {
     use axum::http::HeaderValue;

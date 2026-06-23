@@ -10,7 +10,5 @@ services:
       - SITE_TITLE=${SITE_TITLE:-RustKan}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - RUSTKAN_PIN=${RUSTKAN_PIN}
-      - APPRISE_URL=${APPRISE_URL}
-      - APPRISE_MESSAGE=${APPRISE_MESSAGE:-Kanban Board updated: {action}}
     volumes:
       - ./data:/usr/src/app/data
