@@ -266,11 +266,10 @@ async fn auth_check(
     headers: axum::http::HeaderMap,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    if let Some(ref pin) = state.config.pin {
-        if !is_authorized(&headers, pin) {
+    if let Some(ref pin) = state.config.pin
+        && !is_authorized(&headers, pin) {
             return StatusCode::UNAUTHORIZED.into_response();
         }
-    }
     StatusCode::OK.into_response()
 }
 
@@ -279,11 +278,10 @@ async fn get_tasks(
     headers: axum::http::HeaderMap,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    if let Some(ref pin) = state.config.pin {
-        if !is_authorized(&headers, pin) {
+    if let Some(ref pin) = state.config.pin
+        && !is_authorized(&headers, pin) {
             return StatusCode::UNAUTHORIZED.into_response();
         }
-    }
 
     match tokio::fs::read_to_string("data/tasks.json").await {
         Ok(data) => (StatusCode::OK, data).into_response(),
@@ -296,11 +294,10 @@ async fn save_tasks(
     State(state): State<AppState>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    if let Some(ref pin) = state.config.pin {
-        if !is_authorized(&headers, pin) {
+    if let Some(ref pin) = state.config.pin
+        && !is_authorized(&headers, pin) {
             return StatusCode::UNAUTHORIZED.into_response();
         }
-    }
 
     match tokio::fs::write(
         "data/tasks.json",
@@ -400,11 +397,10 @@ fn get_cors_layer() -> CorsLayer {
         let mut origins = Vec::new();
         for origin in origins_env.split(',') {
             let o = origin.trim();
-            if !o.is_empty() {
-                if let Ok(val) = HeaderValue::from_str(o) {
+            if !o.is_empty()
+                && let Ok(val) = HeaderValue::from_str(o) {
                     origins.push(val);
                 }
-            }
         }
         CorsLayer::new()
             .allow_origin(origins)

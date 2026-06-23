@@ -89,14 +89,12 @@ impl Component for App {
         let language = Language::from_code(&StorageService::get_item("language", "en"));
 
         // Initialize document classes
-        if let Some(window) = web_sys::window() {
-            if let Some(document) = window.document() {
-                if let Some(el) = document.document_element() {
+        if let Some(window) = web_sys::window()
+            && let Some(document) = window.document()
+                && let Some(el) = document.document_element() {
                     let _ = el.set_attribute("class", &theme);
                     let _ = el.set_attribute("data-theme", &theme);
                 }
-            }
-        }
 
         // Fetch config from backend
         let link = ctx.link().clone();
@@ -356,14 +354,12 @@ impl Component for App {
                 self.theme = next_theme.to_string();
                 StorageService::set_item("theme", next_theme);
 
-                if let Some(window) = web_sys::window() {
-                    if let Some(document) = window.document() {
-                        if let Some(el) = document.document_element() {
+                if let Some(window) = web_sys::window()
+                    && let Some(document) = window.document()
+                        && let Some(el) = document.document_element() {
                             let _ = el.set_attribute("class", next_theme);
                             let _ = el.set_attribute("data-theme", next_theme);
                         }
-                    }
-                }
                 true
             }
 
@@ -375,18 +371,15 @@ impl Component for App {
                 true
             }
             Msg::OpenEditTaskModal(col_id, idx) => {
-                if let Some(ref data) = self.board_data {
-                    if let Some(board) = data.boards.get(&self.active_board_id) {
-                        if let Some(col) = board.columns.get(&col_id) {
-                            if let Some(task) = col.tasks.get(idx) {
+                if let Some(ref data) = self.board_data
+                    && let Some(board) = data.boards.get(&self.active_board_id)
+                        && let Some(col) = board.columns.get(&col_id)
+                            && let Some(task) = col.tasks.get(idx) {
                                 self.task_modal_column_id = Some(col_id);
                                 self.task_modal_index = Some(idx);
                                 self.task_modal_text = task.clone();
                                 self.show_task_modal = true;
                             }
-                        }
-                    }
-                }
                 true
             }
             Msg::TaskModalInputChanged(val) => {
@@ -397,10 +390,10 @@ impl Component for App {
                 if self.task_modal_text.trim().is_empty() {
                     return false;
                 }
-                if let Some(ref mut data) = self.board_data {
-                    if let Some(board) = data.boards.get_mut(&self.active_board_id) {
-                        if let Some(ref col_id) = self.task_modal_column_id {
-                            if let Some(col) = board.columns.get_mut(col_id) {
+                if let Some(ref mut data) = self.board_data
+                    && let Some(board) = data.boards.get_mut(&self.active_board_id)
+                        && let Some(ref col_id) = self.task_modal_column_id
+                            && let Some(col) = board.columns.get_mut(col_id) {
                                 let tr = get_translations(self.language);
                                 if let Some(idx) = self.task_modal_index {
                                     col.tasks[idx] = self.task_modal_text.trim().to_string();
@@ -411,35 +404,28 @@ impl Component for App {
                                 }
                                 self.save_tasks_backend(ctx);
                             }
-                        }
-                    }
-                }
                 self.show_task_modal = false;
                 true
             }
             Msg::DeleteTask => {
-                if let Some(ref mut data) = self.board_data {
-                    if let Some(board) = data.boards.get_mut(&self.active_board_id) {
-                        if let Some(ref col_id) = self.task_modal_column_id {
-                            if let Some(idx) = self.task_modal_index {
-                                if let Some(col) = board.columns.get_mut(col_id) {
+                if let Some(ref mut data) = self.board_data
+                    && let Some(board) = data.boards.get_mut(&self.active_board_id)
+                        && let Some(ref col_id) = self.task_modal_column_id
+                            && let Some(idx) = self.task_modal_index
+                                && let Some(col) = board.columns.get_mut(col_id) {
                                     col.tasks.remove(idx);
                                     self.save_tasks_backend(ctx);
                                     let tr = get_translations(self.language);
                                     self.show_toast(tr.toast_task_deleted.to_string(), false, ctx);
                                 }
-                            }
-                        }
-                    }
-                }
                 self.show_task_modal = false;
                 true
             }
             Msg::DeleteTaskDirect(col_id, idx) => {
-                if let Some(ref mut data) = self.board_data {
-                    if let Some(board) = data.boards.get_mut(&self.active_board_id) {
-                        if let Some(col) = board.columns.get_mut(&col_id) {
-                            if idx < col.tasks.len() {
+                if let Some(ref mut data) = self.board_data
+                    && let Some(board) = data.boards.get_mut(&self.active_board_id)
+                        && let Some(col) = board.columns.get_mut(&col_id)
+                            && idx < col.tasks.len() {
                                 let window = web_sys::window().unwrap();
                                 let tr = get_translations(self.language);
                                 let message =
@@ -450,9 +436,6 @@ impl Component for App {
                                     self.show_toast(tr.toast_task_deleted.to_string(), false, ctx);
                                 }
                             }
-                        }
-                    }
-                }
                 true
             }
             Msg::CloseTaskModal => {
@@ -501,8 +484,8 @@ impl Component for App {
                     }
                 };
 
-                if let Some(ref mut data) = self.board_data {
-                    if let Some(board) = data.boards.get_mut(&self.active_board_id) {
+                if let Some(ref mut data) = self.board_data
+                    && let Some(board) = data.boards.get_mut(&self.active_board_id) {
                         // Extract task from source column
                         let task_opt = board
                             .columns
@@ -522,7 +505,6 @@ impl Component for App {
                             }
                         }
                     }
-                }
 
                 self.dragged_column_id = None;
                 self.dragged_task_index = None;
@@ -634,18 +616,15 @@ impl Component for App {
 
 impl App {
     fn update_document_title(&self) {
-        if let Some(window) = web_sys::window() {
-            if let Some(document) = window.document() {
-                if let Some(ref data) = self.board_data {
-                    if let Some(board) = data.boards.get(&self.active_board_id) {
-                        let _ =
-                            document.set_title(&format!("{} - {}", board.name, self.site_title));
+        if let Some(window) = web_sys::window()
+            && let Some(document) = window.document() {
+                if let Some(ref data) = self.board_data
+                    && let Some(board) = data.boards.get(&self.active_board_id) {
+                        document.set_title(&format!("{} - {}", board.name, self.site_title));
                         return;
                     }
-                }
-                let _ = document.set_title(&self.site_title);
+                document.set_title(&self.site_title);
             }
-        }
     }
 
     fn load_tasks(&self, ctx: &Context<Self>) {
@@ -769,7 +748,7 @@ impl App {
                                 </div>
                                 <div
                                     class="column-tasks-box"
-                                    ondragover={ctx.link().callback(|e| Msg::DragOver(e))}
+                                    ondragover={ctx.link().callback(Msg::DragOver)}
                                     ondrop={ctx.link().callback(move |e| Msg::Drop(col_id_drop.clone(), None, e))}
                                 >
                                     <div class="tasks">
@@ -791,7 +770,7 @@ impl App {
                                                         class="task"
                                                         draggable="true"
                                                         ondragstart={ctx.link().callback(move |e| Msg::DragStart(col_id_drag.clone(), idx, e))}
-                                                        ondragover={ctx.link().callback(|e| Msg::DragOver(e))}
+                                                        ondragover={ctx.link().callback(Msg::DragOver)}
                                                         ondrop={ctx.link().callback(move |e| Msg::Drop(col_id_drop.clone(), Some(idx), e))}
                                                         ondblclick={ctx.link().callback(move |_| Msg::OpenEditTaskModal(col_id_edit.clone(), idx))}
                                                     >

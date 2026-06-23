@@ -1,6 +1,7 @@
 use crate::types::Language;
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Translations {
     pub add_task: &'static str,
     pub edit_task: &'static str,
