@@ -131,3 +131,8 @@ dist
 
 /dumbdata/
 .DS_Store
+
+# Rust and Cargo build directories
+target/
+frontend/dist/
+

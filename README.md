@@ -1,138 +1,110 @@
-# DumbKan - Simple Kanban Board
+# RustKan - High-Performance Kanban Board
 
-A lightweight, mobile-friendly Kanban board application for managing tasks and projects. Built with vanilla JavaScript and Node.js.
+RustKan is a clean, secure, and lightning-fast self-hosted Kanban board application built in Rust using Yew (WebAssembly frontend) and Axum (API backend).
 
-![dumbkan](https://github.com/user-attachments/assets/80d32ace-a8b9-476b-a235-df857c1d0c36)
+---
 
+## 🚀 Time-To-First-Run
 
-## Features
+### Option 1: Docker Compose (Recommended)
+1. Ensure a `docker-compose.yml` file is configured in your project root:
+```yaml
+services:
+  rustkan:
+    image: ubermetroid/rustkan:latest
+    container_name: rustkan
+    restart: unless-stopped
+    ports:
+      - 4405:4405
+    environment:
+      - PORT=4405
+      - SITE_TITLE=RustKan
+      - ALLOWED_ORIGINS=*
+      - RUSTKAN_PIN=1234
+      - APPRISE_URL=
+      - APPRISE_MESSAGE=Kanban Board updated: {action}
+    volumes:
+      - ./data:/usr/src/app/data
+```
+2. Spin up the container:
+```bash
+docker compose up -d
+```
+3. Open your browser and navigate to `http://localhost:4405`.
 
-### 🎯 Task Management
-- Create, edit, and delete tasks easily
-- Double-click (desktop) or double-tap (mobile) to edit tasks
-- Drag and drop tasks between columns
-- Smooth animations and visual feedback during interactions
+---
 
-### 📱 Mobile-Optimized
-- Responsive design that works on all devices
-- Touch-friendly interface
-- Double-tap to edit tasks on mobile
-- Easy task movement with touch gestures
+## 🛠️ Local Development
 
-### 📋 Board Management
-- Multiple boards support (Work, Personal, etc.)
-- Create and delete boards
-- Switch between boards instantly
-- Persistent board state
+### 1. Prerequisites
+Ensure you have the Rust toolchain installed. Add the WebAssembly target and install the **Trunk** WASM bundler:
+```bash
+# Add WebAssembly target
+rustup target add wasm32-unknown-unknown
 
-### 📊 Column Management
-- Add new columns for custom workflows
-- Edit column names inline
-- Remove columns with confirmation (fixing)
-- Drag tasks between columns
+# Install Trunk
+wget -qO- "https://github.com/trunk-rs/trunk/releases/download/v0.21.14/trunk-x86_64-unknown-linux-gnu.tar.gz" | tar -xzf- -C /usr/local/bin
+```
 
-### 🎨 Theme Support
-- Light and dark mode
-- System theme detection
-- Smooth theme transitions
-- Theme persistence across sessions
+### 2. Run the Application
+1. **Frontend**: Start the Yew development server (runs with hot-reloading at `http://localhost:8080`):
+   ```bash
+   cd frontend
+   trunk serve
+   ```
+2. **Backend**: Start the Axum API server (listens on `http://localhost:4405`):
+   ```bash
+   cd backend
+   cargo run
+   ```
 
-### 💾 Data Persistence
-- Automatic saving of changes
-- Persistent across page refreshes
-- JSON-based storage
-- No database required
+---
 
-## Environment Variables
+## 📋 Environment Configuration
 
 | Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| PORT | Port for the server to listen on | 3000 | No |
-| DUMBKAN_PIN | PIN protection (4-10 digits) | - | No |
+| :--- | :--- | :--- | :--- |
+| `PORT` | Local host port mapping for the Axum backend | `4405` | Optional |
+| `SITE_TITLE` | Custom title rendered in the navigation header | `RustKan` | Optional |
+| `ALLOWED_ORIGINS` | Comma-separated HTTP request origins (CORS filter) | `*` | Optional |
+| `RUSTKAN_PIN` | Optional 4-10 digit PIN to lock access to the boards | None | Optional |
+| `APPRISE_URL` | Apprise API webhook URL (e.g. Discord, Telegram) | None | Optional |
+| `APPRISE_MESSAGE` | Custom webhook alert message template | `Kanban Board updated: {action}` | Optional |
 
-## PIN Protection
-When `DUMBKAN_PIN` is set, the app requires PIN verification before accessing or modifying boards. The PIN must be 4-10 digits long.
+---
 
-## Data Persistence
-Task data is stored in `/app/data/tasks.json`. When using Docker, mount this directory as a volume to persist data between container restarts.
+## 📂 Repository File Tree
 
-## Getting Started
-
-### Option 1: Docker (Recommended)
-1. Pull the image:
-   ```bash
-   docker pull dumbwareio/dumbkan:latest
-   ```
-
-2. Run the container:
-   ```bash
-   docker run -d -p 3000:3000 -v $(pwd)/data:/app/data --env-file .env dumbwareio/dumbkan:latest
-   ```
-
-3. Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
-
-### Option 2: Local Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/dumbwareio/dumbkan.git
-   cd dumbkan
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the server:
-   ```bash
-   npm start
-   ```
-
-4. Open your browser and navigate to:
-   ```
-   http://localhost:3000
-   ```
-
-## Usage Guide
-
-### Managing Tasks
-- Click "Add Task" to create a new task
-- Double-click (or double-tap on mobile) to edit a task
-- Drag and drop tasks between columns
-- Delete tasks using the delete button in the edit modal
-
-### Working with Boards
-- Click the board name to open the board selector
-- Use "Manage Boards" to add or remove boards
-- Each board maintains its own columns and tasks
-
-### Customizing Columns
-- Click "Add Column" to create a new column
-- Click a column name to edit it
-- Use the remove icon (×) to delete a column
-
-### Theme Switching
-- Click the sun/moon icon to toggle between light and dark modes
-- Theme automatically syncs with system preferences
-- Theme choice persists across sessions
-
-## Technical Details
-
-- Built with vanilla JavaScript - no frameworks
-- Node.js backend with Express
-- File-based JSON storage
-- Responsive CSS with modern features
-- Mobile-first design approach
-
-## Support the Project
-
-<a href="https://www.buymeacoffee.com/dumbware" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60">
-</a>
-
-## Contributing
-
-Feel free to submit issues and enhancement requests! 
+```
+RustKan/
+├── backend/
+│   ├── Cargo.toml
+│   └── src/
+│       ├── main.rs
+│       └── static_files.rs
+├── data/
+│   └── tasks.json
+├── frontend/
+│   ├── Assets/
+│   │   ├── login.css
+│   │   ├── service-worker.js
+│   │   └── styles.css
+│   ├── Cargo.toml
+│   ├── index.html
+│   └── src/
+│       ├── header.rs
+│       ├── i18n.rs
+│       ├── main.rs
+│       ├── storage.rs
+│       └── types.rs
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── .env
+├── .env.example
+├── Cargo.toml
+├── docker-compose.yml
+├── Dockerfile
+├── logo.png
+└── README.md
+```
