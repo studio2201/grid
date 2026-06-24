@@ -1,9 +1,9 @@
+use crate::config::AppConfig;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use crate::config::AppConfig;
 
 #[derive(Clone, Debug)]
 pub struct LoginAttempts {
@@ -29,13 +29,11 @@ impl AppState {
 
     pub async fn is_locked_out(&self, ip: IpAddr) -> bool {
         let map = self.login_attempts.read().await;
-        if let Some(attempts) = map.get(&ip) {
-            if attempts.count >= self.config.max_attempts {
-                let elapsed = attempts.last_attempt.elapsed();
-                let lockout_dur = Duration::from_secs(self.config.lockout_time_minutes * 60);
-                if elapsed < lockout_dur {
-                    return true;
-                }
+        if let Some(attempts) = map.get(&ip).filter(|a| a.count >= self.config.max_attempts) {
+            let elapsed = attempts.last_attempt.elapsed();
+            let lockout_dur = Duration::from_secs(self.config.lockout_time_minutes * 60);
+            if elapsed < lockout_dur {
+                return true;
             }
         }
         false

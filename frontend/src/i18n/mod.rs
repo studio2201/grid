@@ -12,7 +12,6 @@ mod zh;
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct Translations {
-
     pub add_task: &'static str,
     pub edit_task: &'static str,
     pub task_text: &'static str,
@@ -31,7 +30,6 @@ pub struct Translations {
     pub toast_task_deleted: &'static str,
     pub print_tooltip: &'static str,
     pub confirm_delete: &'static str,
-
 }
 
 pub fn get_translations(lang: Language) -> Translations {

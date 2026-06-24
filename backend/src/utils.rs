@@ -1,5 +1,5 @@
-use std::net::{IpAddr, SocketAddr};
 use axum::http::HeaderMap;
+use std::net::{IpAddr, SocketAddr};
 
 pub fn safe_compare(a: &str, b: &str) -> bool {
     if a.len() != b.len() {
@@ -17,7 +17,10 @@ pub fn hash_pin(pin: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(pin.as_bytes());
     let result = hasher.finalize();
-    result.iter().map(|b| format!("{:02x}", b)).collect::<String>()
+    result
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
 }
 
 pub fn normalize_ip(ip: IpAddr) -> IpAddr {
@@ -62,10 +65,9 @@ pub fn get_client_ip(
     }
 
     if !trusted_proxies.is_empty() {
-        if is_trusted_proxy(socket_ip, trusted_proxies) {
-            if let Some(xff_ip) = first_ip_from_x_forwarded_for(headers) {
-                return xff_ip;
-            }
+        let is_trusted = is_trusted_proxy(socket_ip, trusted_proxies);
+        if let Some(xff_ip) = first_ip_from_x_forwarded_for(headers).filter(|_| is_trusted) {
+            return xff_ip;
         }
         return socket_ip;
     }

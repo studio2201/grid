@@ -1,9 +1,9 @@
-use yew::prelude::*;
-use web_sys::HtmlInputElement;
 use crate::app::App;
-use crate::types::*;
 use crate::header::Header;
 use crate::i18n::get_translations;
+use crate::types::*;
+use web_sys::HtmlInputElement;
+use yew::prelude::*;
 
 impl App {
     pub fn view_app(&self, ctx: &Context<Self>) -> Html {

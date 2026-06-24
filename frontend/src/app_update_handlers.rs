@@ -1,13 +1,17 @@
-use yew::prelude::*;
-use gloo_net::http::Request;
 use crate::app::App;
-use crate::types::*;
-use crate::storage::StorageService;
 use crate::i18n::get_translations;
+use crate::storage::StorageService;
+use crate::types::*;
 use crate::utils::normalize_board_data;
+use gloo_net::http::Request;
+use yew::prelude::*;
 
 impl App {
-    pub fn handle_fetch_config_success(&mut self, ctx: &Context<Self>, json: serde_json::Value) -> bool {
+    pub fn handle_fetch_config_success(
+        &mut self,
+        ctx: &Context<Self>,
+        json: serde_json::Value,
+    ) -> bool {
         let pin_req = json
             .get("required")
             .and_then(|v| v.as_bool())
@@ -164,7 +168,12 @@ impl App {
         true
     }
 
-    pub fn handle_delete_task_direct(&mut self, ctx: &Context<Self>, col_id: String, idx: usize) -> bool {
+    pub fn handle_delete_task_direct(
+        &mut self,
+        ctx: &Context<Self>,
+        col_id: String,
+        idx: usize,
+    ) -> bool {
         if let Some(ref mut data) = self.board_data
             && let Some(board) = data.boards.get_mut(&self.active_board_id)
             && let Some(col) = board.columns.get_mut(&col_id)
@@ -195,7 +204,13 @@ impl App {
         false
     }
 
-    pub fn handle_drop(&mut self, ctx: &Context<Self>, dest_col_id: String, dest_idx: Option<usize>, e: web_sys::DragEvent) -> bool {
+    pub fn handle_drop(
+        &mut self,
+        ctx: &Context<Self>,
+        dest_col_id: String,
+        dest_idx: Option<usize>,
+        e: web_sys::DragEvent,
+    ) -> bool {
         e.prevent_default();
         let source_data = e
             .data_transfer()
@@ -228,17 +243,15 @@ impl App {
                 .columns
                 .get_mut(&src_col_id)
                 .map(|col| col.tasks.remove(src_idx));
-            if let Some(task) = task_opt {
-                if let Some(dest_col) = board.columns.get_mut(&dest_col_id) {
-                    if let Some(idx) = dest_idx {
-                        dest_col.tasks.insert(idx, task);
-                    } else {
-                        dest_col.tasks.push(task);
-                    }
-                    self.save_tasks_backend(ctx);
-                    let tr = get_translations(self.language);
-                    self.show_toast(tr.toast_task_moved.to_string(), false, ctx);
+            if let (Some(task), Some(dest_col)) = (task_opt, board.columns.get_mut(&dest_col_id)) {
+                if let Some(idx) = dest_idx {
+                    dest_col.tasks.insert(idx, task);
+                } else {
+                    dest_col.tasks.push(task);
                 }
+                self.save_tasks_backend(ctx);
+                let tr = get_translations(self.language);
+                self.show_toast(tr.toast_task_moved.to_string(), false, ctx);
             }
         }
 
