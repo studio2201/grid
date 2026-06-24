@@ -112,6 +112,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "indexmap",
+ "ipnet",
  "regex",
  "reqwest",
  "serde",

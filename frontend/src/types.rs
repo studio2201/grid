@@ -84,3 +84,41 @@ pub struct BoardData {
     #[serde(rename = "activeBoard")]
     pub active_board: String,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Toast {
+    pub id: usize,
+    pub message: String,
+    pub is_error: bool,
+}
+
+pub enum Msg {
+    FetchConfigSuccess(serde_json::Value),
+    FetchTasksSuccess(BoardData),
+    FetchTasksError,
+    VerifyPinSuccess,
+    VerifyPinFailure(String),
+    PinInputChanged(String),
+    VerifyPin,
+    Logout,
+    SwitchLanguage(Language),
+    ToggleTheme,
+    PrintBoard,
+
+    // Tasks management
+    OpenAddTaskModal(String),
+    OpenEditTaskModal(String, usize),
+    TaskModalInputChanged(String),
+    SaveTask,
+    DeleteTask,
+    DeleteTaskDirect(String, usize),
+    CloseTaskModal,
+
+    // Drag & Drop
+    DragStart(String, usize, web_sys::DragEvent),
+    DragOver(web_sys::DragEvent),
+    Drop(String, Option<usize>, web_sys::DragEvent),
+
+    // Toast
+    DismissToast(usize),
+}
