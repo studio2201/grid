@@ -68,3 +68,49 @@ Configure these settings inside your Docker Compose environment or container env
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed HTTP request origins (CORS filter). Use `*` to allow all origins. | `*` |
 | `RUSTKAN_PIN` | Optional 4–10 digit PIN (numerical only) to lock access to the interface. Leave empty for public mode. | None |
 | `TZ` | Timezone for the container processes and logs. | `UTC` |
+
+## 📂 Repository Structure
+
+```
+.
+├── backend/
+│   ├── Cargo.toml
+│   └── src
+│       ├── auth.rs
+│       ├── config.rs
+│       ├── handlers.rs
+│       ├── main.rs
+│       ├── state.rs
+│       ├── static_files.rs
+│       └── utils.rs
+└── frontend/
+    ├── Assets
+    │   ├── assets
+    │   │   ├── logo.png
+    │   │   └── logo.svg
+    │   ├── login.css
+    │   ├── service-worker.js
+    │   └── styles.css
+    ├── Cargo.toml
+    ├── index.html
+    └── src
+        ├── app.rs
+        ├── app_update.rs
+        ├── app_update_handlers.rs
+        ├── app_view.rs
+        ├── header.rs
+        ├── i18n
+        │   ├── de.rs
+        │   ├── en.rs
+        │   ├── es.rs
+        │   ├── fr.rs
+        │   ├── ja.rs
+        │   ├── mod.rs
+        │   ├── pt.rs
+        │   ├── ru.rs
+        │   └── zh.rs
+        ├── main.rs
+        ├── storage.rs
+        ├── types.rs
+        └── utils.rs
+```
