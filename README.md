@@ -10,7 +10,7 @@ Grid is a clean, secure, and lightning-fast self-hosted Kanban board application
 
 ## 🐳 Container Installation
 
-### Option 1: Docker Compose (Recommended)
+
 
 1. Create a `docker-compose.yml` file:
 
@@ -40,19 +40,6 @@ docker compose up -d
 
 3. Open your browser and navigate to `http://localhost:4405`.
 
-### Option 2: Docker CLI
-
-Run the following command to start the container:
-
-```bash
-docker run -d \
-  --name grid \
-  --restart unless-stopped \
-  -p 4405:4405 \
-  -e SITE_TITLE=Grid \
-  -v $(pwd)/data:/app/data \
-  ubermetroid/grid:latest
-```
 
 ---
 
@@ -73,53 +60,8 @@ Configure these settings inside your Docker Compose environment or container env
 | `ENABLE_PRINT` | Enable the print button in the navigation header (true/false). | `true` |
 | `MAX_ATTEMPTS` | Number of failed PIN attempts permitted before locking out the user client IP address. | `5` |
 
-## 📂 Repository Structure
-
-```
-.
-├── backend/
-│   ├── Cargo.toml
-│   └── src
-│       ├── auth.rs
-│       ├── config.rs
-│       ├── handlers.rs
-│       ├── main.rs
-│       ├── state.rs
-│       ├── static_files.rs
-│       └── utils.rs
-└── frontend/
-    ├── Assets
-    │   ├── assets
-    │   │   ├── logo.png
-    │   │   └── logo.svg
-    │   ├── login.css
-    │   ├── service-worker.js
-    │   └── styles.css
-    ├── Cargo.toml
-    ├── index.html
-    └── src
-        ├── app.rs
-        ├── app_update.rs
-        ├── app_update_handlers.rs
-        ├── app_view.rs
-        ├── header.rs
-        ├── i18n
-        │   ├── de.rs
-        │   ├── en.rs
-        │   ├── es.rs
-        │   ├── fr.rs
-        │   ├── ja.rs
-        │   ├── mod.rs
-        │   ├── pt.rs
-        │   ├── ru.rs
-        │   └── zh.rs
-        ├── main.rs
-        ├── storage.rs
-        ├── types.rs
-        └── utils.rs
-```
 
 
 ---
 
-*Note: This repository was forked from [RustKan](https://github.com/UberMetroid/RustKan).*
+*Note: This repository was forked from [DumbKan](https://github.com/DumbWareio/DumbKan).*
