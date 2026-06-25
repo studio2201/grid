@@ -42,7 +42,7 @@ impl App {
         });
 
         let app = Self {
-            site_title: "RustKan".to_string(),
+            site_title: "Grid".to_string(),
             theme,
             language,
             is_authenticated: false,

@@ -10,7 +10,7 @@ use axum::{
 use std::net::SocketAddr;
 use std::time::Duration;
 
-pub const COOKIE_NAME: &str = "RUSTKAN_PIN";
+pub const COOKIE_NAME: &str = "GRID_PIN";
 
 pub fn is_authenticated(headers: &HeaderMap, state: &AppState) -> bool {
     let pin = match &state.config.pin {
@@ -232,7 +232,7 @@ pub async fn logout() -> impl IntoResponse {
     headers.insert(
         header::SET_COOKIE,
         header::HeaderValue::from_static(
-            "RUSTKAN_PIN=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
+            "GRID_PIN=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
         ),
     );
     (

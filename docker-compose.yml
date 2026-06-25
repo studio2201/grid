@@ -1,8 +1,8 @@
 services:
-  rustkan:
-    image: ubermetroid/rustkan:latest
+  grid:
+    image: ubermetroid/grid:latest
     build: .
-    container_name: rustkan
+    container_name: grid
     restart: unless-stopped
     ports:
       - ${PORT:-4405}:4405
@@ -10,8 +10,8 @@ services:
       - ./data:/app/data
     environment:
       PORT: 4405
-      SITE_TITLE: ${SITE_TITLE:-RustKan}
-      RUSTKAN_PIN: ${RUSTKAN_PIN:-}
+      SITE_TITLE: ${SITE_TITLE:-Grid}
+      GRID_PIN: ${GRID_PIN:-}
       BASE_URL: ${BASE_URL:-http://localhost:4405}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       TZ: ${TZ:-UTC}

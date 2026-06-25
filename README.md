@@ -1,10 +1,10 @@
-# RustKan - High-Performance Kanban Board
+# Grid - High-Performance Kanban Board
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/UberMetroid/RustKan/main/logo.png" alt="RustKan Logo" width="128" height="128">
+  <img src="https://raw.githubusercontent.com/UberMetroid/Grid/main/logo.png" alt="Grid Logo" width="128" height="128">
 </p>
 
-RustKan is a clean, secure, and lightning-fast self-hosted Kanban board application built in Rust using Yew (WebAssembly frontend) and Axum (API backend).
+Grid is a clean, secure, and lightning-fast self-hosted Kanban board application built in Rust using Yew (WebAssembly frontend) and Axum (API backend).
 
 ---
 
@@ -17,17 +17,17 @@ RustKan is a clean, secure, and lightning-fast self-hosted Kanban board applicat
 ```yaml
 version: '3'
 services:
-  rustkan:
-    image: ubermetroid/rustkan:latest
-    container_name: rustkan
+  grid:
+    image: ubermetroid/grid:latest
+    container_name: grid
     restart: unless-stopped
     ports:
       - 4405:4405
     environment:
       - PORT=4405
-      - SITE_TITLE=RustKan
+      - SITE_TITLE=Grid
       - ALLOWED_ORIGINS=*
-      - RUSTKAN_PIN=1234  # Optional: Set a PIN to lock board access
+      - GRID_PIN=1234  # Optional: Set a PIN to lock board access
     volumes:
       - ./data:/app/data
 ```
@@ -46,12 +46,12 @@ Run the following command to start the container:
 
 ```bash
 docker run -d \
-  --name rustkan \
+  --name grid \
   --restart unless-stopped \
   -p 4405:4405 \
-  -e SITE_TITLE=RustKan \
+  -e SITE_TITLE=Grid \
   -v $(pwd)/data:/app/data \
-  ubermetroid/rustkan:latest
+  ubermetroid/grid:latest
 ```
 
 ---
@@ -63,10 +63,10 @@ Configure these settings inside your Docker Compose environment or container env
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `PORT` | The port number the backend HTTP server will bind to inside the container. | `4405` |
-| `SITE_TITLE` | Custom website title rendered in navigation headers, browser tabs, and PWA manifest. *(Supports fallback `RUSTRUSTKAN_TITLE`)* | `RustKan` |
+| `SITE_TITLE` | Custom website title rendered in navigation headers, browser tabs, and PWA manifest. *(Supports fallback `RUSTGRID_TITLE`)* | `Grid` |
 | `BASE_URL` | Application base URL. Essential when deploying behind reverse proxies to ensure redirect and websocket links are resolved correctly. | `http://localhost:4405` |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed HTTP request origins (CORS filter). Use `*` to allow all origins. | `*` |
-| `RUSTKAN_PIN` | Optional 4–10 digit PIN (numerical only) to lock access to the interface. Leave empty for public mode. | None |
+| `GRID_PIN` | Optional 4–10 digit PIN (numerical only) to lock access to the interface. Leave empty for public mode. | None |
 | `TZ` | Timezone for the container processes and logs. | `UTC` |
 | `ENABLE_TRANSLATION` | Enable the multi-language / translation selector in the navigation header (true/false). | `false` |
 | `ENABLE_THEMES` | Enable the Super Metroid theme selector in the navigation header (true/false). | `true` |
@@ -118,3 +118,8 @@ Configure these settings inside your Docker Compose environment or container env
         ├── types.rs
         └── utils.rs
 ```
+
+
+---
+
+*Note: This repository was forked from [RustKan](https://github.com/UberMetroid/RustKan).*

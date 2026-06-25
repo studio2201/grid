@@ -26,7 +26,7 @@ RUN cargo build --release --bin backend
 
 # Stage 3: Final package
 FROM alpine:latest
-LABEL org.opencontainers.image.source="https://github.com/UberMetroid/RustKan"
+LABEL org.opencontainers.image.source="https://github.com/UberMetroid/Grid"
 WORKDIR /app
 
 # Install runtime dependencies
@@ -36,7 +36,7 @@ ENV PORT=4405
 ENV NODE_ENV=production
 ENV LOG_DIR=/app/log
 
-COPY --from=backend-builder /app/target/release/backend ./rustkan
+COPY --from=backend-builder /app/target/release/backend ./grid
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 RUN mkdir -p data && chown -R 99:100 /app
@@ -49,4 +49,4 @@ EXPOSE 4405
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s CMD wget -qO- http://localhost:4405/health || exit 1
 
-CMD ["./rustkan"]
+CMD ["./grid"]

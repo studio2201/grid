@@ -1,12 +1,12 @@
 [package]
 name = "frontend"
-version = "1.0.3"
+version = "2.0.0"
 edition = "2024"
 authors = ["UberMetroid <admin@ubermetroid.com>"]
 license = "Apache-2.0"
-repository = "https://github.com/UberMetroid/RustKan"
-homepage = "https://github.com/UberMetroid/RustKan"
-description = "Yew frontend application for RustKan."
+repository = "https://github.com/UberMetroid/Grid"
+homepage = "https://github.com/UberMetroid/Grid"
+description = "Yew frontend application for Grid."
 readme = "../README.md"
 
 [dependencies]
