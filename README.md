@@ -8,6 +8,15 @@ Grid is a clean, secure, and lightning-fast self-hosted Kanban board application
 
 ---
 
+## 📦 Container Registry
+
+The Docker image is published to the following registries:
+
+*   **Docker Hub (Recommended)**: [ubermetroid/grid](https://hub.docker.com/r/ubermetroid/grid)
+*   **GitHub Container Registry (GHCR)**: [ghcr.io/ubermetroid/grid](https://github.com/UberMetroid/grid/pkgs/container/grid)
+
+---
+
 ## 🐳 Container Installation
 
 
