@@ -138,10 +138,10 @@ pub fn generate_session_id() -> String {
     use std::io::Read;
     let file = File::open("/dev/urandom").ok();
     let mut bytes = [0u8; 16];
-    if let Some(mut f) = file {
-        if f.read_exact(&mut bytes).is_ok() {
-            return bytes.iter().map(|b| format!("{:02x}", b)).collect();
-        }
+    if let Some(mut f) = file
+        && f.read_exact(&mut bytes).is_ok()
+    {
+        return bytes.iter().map(|b| format!("{:02x}", b)).collect();
     }
     let random_val = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     use sha2::{Digest, Sha256};
@@ -201,9 +201,13 @@ pub async fn verify_pin(
 
     if safe_compare(pin_str, expected_pin) {
         state.reset_login_attempts(ip).await;
-        
+
         let session_id = generate_session_id();
-        state.active_sessions.write().await.insert(session_id.clone());
+        state
+            .active_sessions
+            .write()
+            .await
+            .insert(session_id.clone());
 
         let cookie_max_age = Duration::from_secs((state.config.cookie_max_age_hours * 3600) as u64);
         let secure = headers
@@ -268,9 +272,7 @@ pub async fn logout(headers: HeaderMap, State(state): State<AppState>) -> impl I
     let mut headers = HeaderMap::new();
     headers.insert(
         header::SET_COOKIE,
-        header::HeaderValue::from_static(
-            "GRID_PIN=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
-        ),
+        header::HeaderValue::from_static("GRID_PIN=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"),
     );
     (
         StatusCode::OK,

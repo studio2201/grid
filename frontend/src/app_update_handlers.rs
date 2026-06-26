@@ -38,13 +38,12 @@ impl App {
 
         if !self.enable_themes {
             self.theme = "tourian".to_string();
-            if let Some(window) = web_sys::window() {
-                if let Some(doc) = window.document() {
-                    if let Some(html) = doc.document_element() {
-                        let _ = html.set_attribute("data-theme", "tourian");
-                        let _ = html.set_attribute("class", "tourian");
-                    }
-                }
+            if let Some(window) = web_sys::window()
+                && let Some(doc) = window.document()
+                && let Some(html) = doc.document_element()
+            {
+                let _ = html.set_attribute("data-theme", "tourian");
+                let _ = html.set_attribute("class", "tourian");
             }
         }
 
