@@ -260,37 +260,11 @@
     --row-bg: rgba(13, 29, 33, 0.5);
 }
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--background);
-    background-attachment: fixed;
-    color: var(--text);
-    line-height: 1.6;
-    transition: background var(--transition), color var(--transition);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
 
-#app {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
 
-.app-body {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 2rem;
-    width: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    overflow: hidden;
-}
+
+
+.app-
 
 /* Header styling loaded from separate header.css */
 
@@ -636,12 +610,7 @@ main {
     color: var(--text);
 }
 
-.modal-body {
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+.modal-
 
 .modal-body label {
     font-size: 0.85rem;
