@@ -11,6 +11,7 @@ impl App {
         let show_version = self.show_version;
         let show_github = self.show_github;
         let version = env!("CARGO_PKG_VERSION").to_string();
+        let version_url = format!("https://github.com/UberMetroid/grid/releases/tag/v{}", version);
 
         let disable_print = if let Some(ref data) = self.board_data {
             if let Some(board) = data.boards.get(&self.active_board_id) {
@@ -65,7 +66,7 @@ impl App {
                 </div>
 
                 /* Footer */
-                <crate::footer::Footer {show_version} {version} {show_github}>
+                <crate::footer::Footer {show_version} {version} {show_github} {version_url}>
                     {
                         if let Some(t) = self.toasts.last() {
                             let cls = if t.is_error { "error" } else { "success" };
