@@ -161,12 +161,6 @@ impl App {
         if let Some(window) = web_sys::window()
             && let Some(document) = window.document()
         {
-            if let Some(ref data) = self.board_data
-                && let Some(board) = data.boards.get(&self.active_board_id)
-            {
-                document.set_title(&format!("{} - {}", board.name, self.site_title));
-                return;
-            }
             document.set_title(&self.site_title);
         }
     }
