@@ -1,7 +1,6 @@
 services:
   grid:
     image: ubermetroid/grid:latest
-    build: .
     container_name: grid
     restart: unless-stopped
     ports:
