@@ -6,6 +6,7 @@ use axum::{
     response::{Html, IntoResponse},
 };
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path as StdPath;
 use std::sync::LazyLock;
@@ -13,30 +14,96 @@ use std::time::Instant;
 
 static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 
+const TASKS_FILE: &str = "data/tasks.json";
+
+/// Persisted kanban state. Mirrors the WASM `BoardData` in
+/// `frontend/src/types.rs`. The `version` field implements optimistic
+/// concurrency: the client must send back the version it loaded; on
+/// mismatch the server returns 409 Conflict and the client refetches.
+///
+/// TODO(task-ids): `Column.tasks` is `Vec<String>`, so drag operations are
+/// keyed by list index and go stale if the list changes mid-drag (the
+/// dragged index may now point at a different task, or out of range). The
+/// robust fix is to add a `Task { id: String, text: String }` struct and
+/// key the drag protocol by `id`. This was called out as a high-priority
+/// issue by the original review; deferred here because it requires a
+/// coordinated frontend change to the drag/drop handlers in
+/// `frontend/src/app/update_handlers.rs` and the column-rendering code in
+/// `frontend/src/app/view.rs`. Tracked as a separate issue.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Column {
+    pub name: String,
+    pub tasks: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Board {
+    pub name: String,
+    pub columns: indexmap::IndexMap<String, Column>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct BoardData {
+    /// Monotonic version. Incremented on every successful save. Missing
+    /// in legacy files (defaulted to 0 on read).
+    #[serde(default)]
+    pub version: u64,
+    pub boards: indexmap::IndexMap<String, Board>,
+    #[serde(rename = "activeBoard", default)]
+    pub active_board: String,
+}
+
+impl Default for BoardData {
+    fn default() -> Self {
+        Self {
+            version: 0,
+            boards: indexmap::IndexMap::new(),
+            active_board: String::new(),
+        }
+    }
+}
+
 pub fn initialize_storage() {
     if !StdPath::new("data").exists() {
         let _ = fs::create_dir_all("data");
     }
-    let tasks_path = StdPath::new("data/tasks.json");
+    let tasks_path = StdPath::new(TASKS_FILE);
     if !tasks_path.exists() {
-        let default_structure = serde_json::json!({
-            "boards": {
-                "work": {
-                    "name": "Work",
-                    "columns": {
-                        "todo": { "name": "To Do", "tasks": [] },
-                        "doing": { "name": "Doing", "tasks": [] },
-                        "done": { "name": "Done", "tasks": [] }
-                    }
-                }
+        // Seed with a sensible default. `version: 0` so the first client
+        // save goes through `0 -> 1` cleanly.
+        let mut boards = indexmap::IndexMap::new();
+        let mut columns = indexmap::IndexMap::new();
+        columns.insert("todo".to_string(), Column { name: "To Do".to_string(), tasks: vec![] });
+        columns.insert("doing".to_string(), Column { name: "Doing".to_string(), tasks: vec![] });
+        columns.insert("done".to_string(), Column { name: "Done".to_string(), tasks: vec![] });
+        boards.insert(
+            "work".to_string(),
+            Board {
+                name: "Work".to_string(),
+                columns,
             },
-            "activeBoard": "work"
-        });
-        let _ = fs::write(
-            tasks_path,
-            serde_json::to_string_pretty(&default_structure).unwrap(),
         );
+        let seed = BoardData {
+            version: 0,
+            boards,
+            active_board: "work".to_string(),
+        };
+        let _ = atomic_write(TASKS_FILE, serde_json::to_string_pretty(&seed).unwrap().as_bytes());
     }
+}
+
+/// Atomic write: write to a sibling temp file, fsync, then rename over the
+/// destination. A crash mid-write leaves the original file intact rather
+/// than a half-written `tasks.json` that the frontend can't deserialize.
+fn atomic_write(path: &str, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let tmp = format!("{path}.tmp");
+    {
+        let mut f = fs::File::create(&tmp)?;
+        f.write_all(bytes)?;
+        f.sync_all()?;
+    }
+    fs::rename(&tmp, path)
 }
 
 pub async fn serve_health() -> impl IntoResponse {
@@ -59,20 +126,156 @@ pub async fn serve_index(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 pub async fn get_tasks() -> impl IntoResponse {
-    match tokio::fs::read_to_string("data/tasks.json").await {
-        Ok(data) => (StatusCode::OK, data).into_response(),
+    match tokio::fs::read_to_string(TASKS_FILE).await {
+        // Return the raw JSON string so the frontend can deserialize into
+        // its own `BoardData` type without us having to round-trip through
+        // serde_json::Value (which would silently strip unknown fields).
+        Ok(data) => (
+            StatusCode::OK,
+            [(axum::http::header::CONTENT_TYPE, "application/json")],
+            data,
+        )
+            .into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
 }
 
-pub async fn save_tasks(Json(payload): Json<serde_json::Value>) -> impl IntoResponse {
-    match tokio::fs::write(
-        "data/tasks.json",
-        serde_json::to_string_pretty(&payload).unwrap(),
-    )
-    .await
+/// Save the kanban state. Performs optimistic concurrency: if the
+/// incoming payload's `version` is less than the current stored version,
+/// returns 409 Conflict with the current version. Otherwise writes
+/// atomically with `version + 1`.
+pub async fn save_tasks(Json(payload): Json<BoardData>) -> impl IntoResponse {
+    // Validate structure: every board must have at least one column, every
+    // column must have a name. Malformed payloads (e.g. truncated JSON)
+    // already fail at Json extraction with 422 by axum's built-in handler,
+    // but we also defensively check invariants here.
+    for (board_id, board) in &payload.boards {
+        if board.columns.is_empty() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "validation_failed",
+                    "detail": format!("board '{board_id}' has no columns"),
+                })),
+            )
+                .into_response();
+        }
+    }
+
+    // Load current state to check version.
+    let current: BoardData = match tokio::fs::read_to_string(TASKS_FILE).await {
+        Ok(s) => match serde_json::from_str(&s) {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::error!("tasks.json is corrupt: {e}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": "storage_corrupt" })),
+                )
+                    .into_response();
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => BoardData::default(),
+        Err(e) => {
+            tracing::error!("failed to read tasks.json: {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    // Optimistic concurrency check.
+    if payload.version < current.version {
+        return (
+            StatusCode::CONFLICT,
+            Json(serde_json::json!({
+                "error": "version_conflict",
+                "current_version": current.version,
+                "your_version": payload.version,
+            })),
+        )
+            .into_response();
+    }
+
+    let mut new_data = payload;
+    new_data.version = current.version.saturating_add(1);
+
+    let serialized = match serde_json::to_string_pretty(&new_data) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("failed to serialize BoardData: {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    match tokio::task::spawn_blocking(move || atomic_write(TASKS_FILE, serialized.as_bytes()))
+        .await
     {
-        Ok(_) => Json(serde_json::json!({ "ok": true })).into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        Ok(Ok(())) => Json(serde_json::json!({
+            "ok": true,
+            "version": new_data.version,
+        }))
+        .into_response(),
+        Ok(Err(e)) => {
+            tracing::error!("failed to write tasks.json: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+        Err(e) => {
+            tracing::error!("save_tasks join error: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_board_data_has_zero_version() {
+        let d = BoardData::default();
+        assert_eq!(d.version, 0);
+        assert!(d.boards.is_empty());
+    }
+
+    #[test]
+    fn board_data_roundtrip_preserves_version() {
+        let mut boards = indexmap::IndexMap::new();
+        let mut columns = indexmap::IndexMap::new();
+        columns.insert(
+            "todo".to_string(),
+            Column { name: "To Do".to_string(), tasks: vec!["a".into(), "b".into()] },
+        );
+        boards.insert(
+            "work".to_string(),
+            Board { name: "Work".to_string(), columns },
+        );
+        let data = BoardData {
+            version: 42,
+            boards,
+            active_board: "work".to_string(),
+        };
+        let s = serde_json::to_string(&data).unwrap();
+        let parsed: BoardData = serde_json::from_str(&s).unwrap();
+        assert_eq!(parsed.version, 42);
+        assert_eq!(parsed.active_board, "work");
+        assert_eq!(parsed.boards["work"].columns["todo"].tasks, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn board_data_deserializes_legacy_without_version() {
+        // Older files written before optimistic concurrency was added.
+        let legacy = r#"{
+            "boards": {
+                "work": {
+                    "name": "Work",
+                    "columns": {
+                        "todo": { "name": "To Do", "tasks": [] }
+                    }
+                }
+            },
+            "activeBoard": "work"
+        }"#;
+        let parsed: BoardData = serde_json::from_str(legacy).unwrap();
+        assert_eq!(parsed.version, 0, "legacy files default version to 0");
+        assert_eq!(parsed.active_board, "work");
     }
 }

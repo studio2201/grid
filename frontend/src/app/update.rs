@@ -170,7 +170,11 @@ impl App {
     pub fn load_tasks(&self, ctx: &Context<Self>) {
         let link = ctx.link().clone();
         wasm_bindgen_futures::spawn_local(async move {
-            match Request::get("/data/tasks.json").send().await {
+            // The backend exposes the kanban state at /api/tasks (auth +
+            // rate-limit + origin-validation middleware all applied).
+            // Previously this was /data/tasks.json, a duplicate route with
+            // weaker middleware; that route was removed in this PR.
+            match Request::get("/api/tasks").send().await {
                 Ok(resp) if resp.status() == 200 => {
                     if let Ok(data) = resp.json::<BoardData>().await {
                         link.send_message(Msg::FetchTasksSuccess(data));
@@ -189,7 +193,13 @@ impl App {
         if let Some(ref data) = self.board_data {
             let payload = data.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let _ = Request::post("/data/tasks.json")
+                // POST to /api/tasks. The backend's optimistic-concurrency
+                // check compares payload.version to the on-disk version.
+                // On 409 Conflict we currently fire-and-forget; a richer
+                // UX would surface the conflict via a toast and refetch.
+                // TODO: surface 409 to the user via Msg::SaveTasksConflict
+                // and trigger a refetch.
+                let _ = Request::post("/api/tasks")
                     .json(&payload)
                     .unwrap()
                     .send()

@@ -3,6 +3,7 @@ use axum::{
     routing::{get, post},
 };
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 use tower_http::services::ServeDir;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
@@ -12,7 +13,6 @@ mod config;
 mod handlers;
 mod state;
 mod static_files;
-mod utils;
 
 use config::AppConfig;
 use state::AppState;
@@ -81,29 +81,25 @@ async fn main() {
     let asset_manifest = std::sync::Arc::new(static_files::build_asset_manifest());
     let state = AppState::new(config.clone(), asset_manifest);
 
-    // Lockout cleanup thread
+    // Rate-limit cleanup thread.
+//
+// Note: login-attempt lockouts are now tracked in
+// `shared_assets::auth::attempts` (process-global). Entries self-expire
+// on read in `is_locked_out`, so no cleanup thread is required for them.
     let state_clone = state.clone();
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(60)).await;
-            state_clone.clean_old_lockouts().await;
             state_clone.clean_old_rate_limits().await;
         }
     });
 
-    let cors = if config.server.allowed_origins == "*" {
-        tower_http::cors::CorsLayer::permissive()
-    } else {
-        let mut cors = tower_http::cors::CorsLayer::new()
-            .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-            .allow_headers([axum::http::header::CONTENT_TYPE, axum::http::header::COOKIE]);
-        for origin in config.server.allowed_origins.split(',') {
-            if let Ok(parsed) = origin.trim().parse::<axum::http::HeaderValue>() {
-                cors = cors.allow_origin(parsed);
-            }
-        }
-        cors.allow_credentials(true)
-    };
+    // Use the canonical CORS layer from shared-assets. The previous inline
+    // version only allowed GET and POST; the shared version correctly
+    // allows all common REST methods.
+    let server_config: Arc<shared_assets::server::ServerConfig> =
+        Arc::new(config.server.clone());
+    let cors = shared_assets::middleware::cors_layer(&server_config);
 
     let api_routes = Router::new()
         .route(
@@ -161,7 +157,13 @@ async fn main() {
         .route("/", get(handlers::serve_index))
         .route("/index.html", get(handlers::serve_index))
         .fallback_service(ServeDir::new("frontend/dist"))
-        .layer(middleware::from_fn(auth::security_headers_middleware))
+        .layer(middleware::from_fn(
+            shared_assets::middleware::security_headers_layer,
+        ))
+        .layer(middleware::from_fn_with_state(
+            shared_assets::middleware::HstsState(server_config.clone()),
+            shared_assets::middleware::hsts_layer,
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(cors)
         .with_state(state);

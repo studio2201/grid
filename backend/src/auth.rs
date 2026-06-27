@@ -1,5 +1,4 @@
 use crate::state::AppState;
-use crate::utils::{get_client_ip, safe_compare};
 use axum::{
     Json,
     extract::{ConnectInfo, State},
@@ -7,6 +6,8 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use shared_assets::auth::{is_locked_out, record_attempt, reset_attempts};
+use shared_assets::server::get_client_ip;
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -33,7 +34,13 @@ pub async fn is_authenticated(headers: &HeaderMap, state: &AppState) -> bool {
 
     match (cookie_pin, header_pin) {
         (Some(cookie), _) => state.active_sessions.read().await.contains(&cookie),
-        (None, Some(hdr)) => safe_compare(hdr, pin),
+        // `constant_time_eq` returns false in constant time regardless of
+        // where the first byte mismatches. This avoids the byte-by-byte
+        // timing leak of a naive `==` compare.
+        (None, Some(hdr)) => constant_time_eq::constant_time_eq(
+            hdr.as_bytes(),
+            pin.as_bytes(),
+        ),
         (None, None) => false,
     }
 }
@@ -105,27 +112,66 @@ pub async fn origin_validation_middleware(
     }
 }
 
-pub async fn security_headers_middleware(req: axum::extract::Request, next: Next) -> Response {
-    let mut response = next.run(req).await;
-    let headers = response.headers_mut();
+// NOTE: `security_headers_middleware` was removed in favour of
+// `shared_assets::middleware::security_headers_layer` (see main.rs).
+// Grid's previous CSP permitted inline scripts and `unsafe-eval`, which is
+// the same posture shared-assets uses so Yew CSR works; do not tighten
+// without auditing the frontend.
 
-    headers.insert("X-Frame-Options", header::HeaderValue::from_static("DENY"));
-    headers.insert(
-        "X-Content-Type-Options",
-        header::HeaderValue::from_static("nosniff"),
-    );
-    headers.insert(
-        "Referrer-Policy",
-        header::HeaderValue::from_static("strict-origin-when-cross-origin"),
-    );
-    headers.insert(
-        "Content-Security-Policy", 
-        header::HeaderValue::from_static(
-            "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: http: https:; font-src 'self'; manifest-src 'self';"
-        )
-    );
+pub async fn origin_validation_middleware(
+    State(state): State<AppState>,
+    req: axum::extract::Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let origins_env = &state.config.server.allowed_origins;
+    if origins_env == "*" {
+        return Ok(next.run(req).await);
+    }
 
-    response
+    let referer = req.headers().get("referer").and_then(|v| v.to_str().ok());
+    let host = req.headers().get("host").and_then(|v| v.to_str().ok());
+
+    let origin = if let Some(ref_val) = referer {
+        if let Ok(url) = reqwest::Url::parse(ref_val) {
+            url.origin().ascii_serialization()
+        } else {
+            ref_val.to_string()
+        }
+    } else if let Some(host_val) = host {
+        let proto = req
+            .headers()
+            .get("x-forwarded-proto")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("http");
+        format!("{}://{}", proto, host_val)
+    } else {
+        return Err(StatusCode::FORBIDDEN);
+    };
+
+    let allowed_list: Vec<String> = origins_env
+        .split(',')
+        .map(|s| {
+            let s_trim = s.trim();
+            if let Ok(url) = reqwest::Url::parse(s_trim) {
+                url.origin().ascii_serialization()
+            } else {
+                s_trim.to_string()
+            }
+        })
+        .collect();
+
+    let normalized_origin = if let Ok(url) = reqwest::Url::parse(&origin) {
+        url.origin().ascii_serialization()
+    } else {
+        origin.clone()
+    };
+
+    if allowed_list.contains(&normalized_origin) {
+        Ok(next.run(req).await)
+    } else {
+        tracing::warn!("Blocked request from origin: {}", origin);
+        Err(StatusCode::FORBIDDEN)
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -169,20 +215,18 @@ pub async fn verify_pin(
         &state.config.server.trusted_proxies,
     );
 
-    if state.is_locked_out(ip).await {
-        let map = state.login_attempts.read().await;
-        let last_time = map.get(&ip).map(|a| a.last_attempt).unwrap();
-        let lockout_dur = Duration::from_secs(state.config.server.lockout_time_minutes * 60);
-        let time_left = lockout_dur
-            .checked_sub(last_time.elapsed())
-            .unwrap_or(Duration::ZERO);
-        let time_left_min = (time_left.as_secs_f64() / 60.0).ceil() as u64;
-
+    // Lockout is tracked in shared-assets' process-global state and keyed
+    // by string IP. Grid's `IpAddr` -> String conversion is `Display`-based.
+    let ip_str = ip.to_string();
+    let lockout_dur = Duration::from_secs(state.config.server.lockout_time_minutes * 60);
+    if is_locked_out(&ip_str, state.config.server.max_attempts, lockout_dur) {
+        let secs_remaining = shared_assets::auth::lockout_remaining_secs(&ip_str, lockout_dur);
+        let minutes_remaining = (secs_remaining / 60).max(1);
         return (
             StatusCode::TOO_MANY_REQUESTS,
             Json(serde_json::json!({
                 "success": false,
-                "error": format!("Too many attempts. Please try again in {} minute(s).", time_left_min)
+                "error": format!("Too many attempts. Please try again in {} minute(s).", minutes_remaining)
             })),
         )
             .into_response();
@@ -199,8 +243,8 @@ pub async fn verify_pin(
             .into_response();
     }
 
-    if safe_compare(pin_str, expected_pin) {
-        state.reset_login_attempts(ip).await;
+    if constant_time_eq::constant_time_eq(pin_str.as_bytes(), expected_pin.as_bytes()) {
+        reset_attempts(&ip_str);
 
         let session_id = generate_session_id();
         state
@@ -236,10 +280,8 @@ pub async fn verify_pin(
         )
             .into_response()
     } else {
-        state.record_login_attempt(ip).await;
-        let map = state.login_attempts.read().await;
-        let count = map.get(&ip).map(|a| a.count).unwrap_or(0);
-        let remaining = state.config.server.max_attempts as usize - count;
+        let attempt = record_attempt(&ip_str);
+        let remaining = (state.config.server.max_attempts as i64 - attempt.count as i64).max(0);
 
         (
             StatusCode::UNAUTHORIZED,
@@ -295,15 +337,16 @@ pub async fn pin_required(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let ip = get_client_ip(
-        &headers,
+        headers.headers(),
         addr,
         state.config.server.trust_proxy,
         &state.config.server.trusted_proxies,
     );
+    let lockout_dur = Duration::from_secs(state.config.server.lockout_time_minutes * 60);
     Json(serde_json::json!({
         "required": state.config.server.pin.is_some(),
         "length": state.config.server.pin.as_ref().map(|p| p.len()).unwrap_or(0),
-        "locked": state.is_locked_out(ip).await,
+        "locked": is_locked_out(&ip, state.config.server.max_attempts, lockout_dur),
         "enable_translation": state.config.server.enable_translation,
         "enable_themes": state.config.server.enable_themes,
         "enable_print": state.config.server.enable_print,
@@ -329,7 +372,7 @@ pub async fn rate_limit_middleware(
         &state.config.server.trusted_proxies,
     );
 
-    if !state.check_rate_limit(ip).await {
+    if !state.check_rate_limit(&ip).await {
         let body = serde_json::json!({
             "error": "Too many requests. Please slow down."
         });

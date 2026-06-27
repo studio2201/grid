@@ -1,23 +1,21 @@
 use crate::config::AppConfig;
 use std::collections::HashMap;
-use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
-#[derive(Clone, Debug)]
-pub struct LoginAttempts {
-    pub count: usize,
-    pub last_attempt: Instant,
-}
-
+/// Application state.
+///
+/// Login-attempt tracking is no longer here — it lives in
+/// `shared_assets::auth::attempts` as a process-global `OnceLock<Mutex<…>>`.
+/// Keeping it global (rather than per-instance state) ensures that
+/// concurrent requests on the same instance see consistent counters.
 #[derive(Clone)]
 pub struct AppState {
     pub config: AppConfig,
     pub asset_manifest: std::sync::Arc<Vec<String>>,
-    pub login_attempts: Arc<RwLock<HashMap<IpAddr, LoginAttempts>>>,
     pub active_sessions: Arc<RwLock<std::collections::HashSet<String>>>,
-    pub rate_limiter: Arc<RwLock<HashMap<IpAddr, Vec<Instant>>>>,
+    pub rate_limiter: Arc<RwLock<HashMap<String, Vec<Instant>>>>,
 }
 
 impl AppState {
@@ -25,56 +23,28 @@ impl AppState {
         Self {
             config,
             asset_manifest,
-            login_attempts: Arc::new(RwLock::new(HashMap::new())),
             active_sessions: Arc::new(RwLock::new(std::collections::HashSet::new())),
             rate_limiter: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    pub async fn is_locked_out(&self, ip: IpAddr) -> bool {
-        let map = self.login_attempts.read().await;
-        if let Some(attempts) = map.get(&ip).filter(|a| a.count >= self.config.server.max_attempts as usize) {
-            let elapsed = attempts.last_attempt.elapsed();
-            let lockout_dur = Duration::from_secs(self.config.server.lockout_time_minutes * 60);
-            if elapsed < lockout_dur {
-                return true;
-            }
-        }
-        false
-    }
-
-    pub async fn record_login_attempt(&self, ip: IpAddr) {
-        let mut map = self.login_attempts.write().await;
-        let attempts = map.entry(ip).or_insert(LoginAttempts {
-            count: 0,
-            last_attempt: Instant::now(),
-        });
-        attempts.count += 1;
-        attempts.last_attempt = Instant::now();
-    }
-
-    pub async fn reset_login_attempts(&self, ip: IpAddr) {
-        let mut map = self.login_attempts.write().await;
-        map.remove(&ip);
-    }
-
-    pub async fn clean_old_lockouts(&self) {
-        let lockout_dur = Duration::from_secs(self.config.server.lockout_time_minutes * 60);
-        let mut map = self.login_attempts.write().await;
-        map.retain(|_, attempts| attempts.last_attempt.elapsed() < lockout_dur);
-    }
-
-    pub async fn check_rate_limit(&self, ip: IpAddr) -> bool {
-        let max_requests = 100; // 100 requests
-        let window = Duration::from_secs(60); // per 60 seconds
+    /// Sliding-window per-IP rate limiter, keyed by string IP.
+    ///
+    /// `ip` is expected to be the output of
+    /// `shared_assets::server::get_client_ip`, which is already normalized
+    /// (IPv6 mapped to IPv4 where applicable) and trusts `X-Forwarded-For`
+    /// only when the connecting socket matches `TRUSTED_PROXY_IPS`.
+    pub async fn check_rate_limit(&self, ip: &str) -> bool {
+        const MAX_REQUESTS: usize = 100; // 100 requests
+        const WINDOW: Duration = Duration::from_secs(60); // per 60 seconds
         let now = Instant::now();
 
         let mut map = self.rate_limiter.write().await;
-        let timestamps = map.entry(ip).or_insert_with(Vec::new);
+        let timestamps = map.entry(ip.to_string()).or_insert_with(Vec::new);
 
-        timestamps.retain(|&t| now.duration_since(t) < window);
+        timestamps.retain(|&t| now.duration_since(t) < WINDOW);
 
-        if timestamps.len() >= max_requests {
+        if timestamps.len() >= MAX_REQUESTS {
             false
         } else {
             timestamps.push(now);
@@ -83,11 +53,11 @@ impl AppState {
     }
 
     pub async fn clean_old_rate_limits(&self) {
-        let window = Duration::from_secs(60);
+        const WINDOW: Duration = Duration::from_secs(60);
         let now = Instant::now();
         let mut map = self.rate_limiter.write().await;
         map.retain(|_, timestamps| {
-            timestamps.retain(|&t| now.duration_since(t) < window);
+            timestamps.retain(|&t| now.duration_since(t) < WINDOW);
             !timestamps.is_empty()
         });
     }

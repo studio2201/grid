@@ -16,8 +16,14 @@ pub struct Board {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct BoardData {
+    /// Monotonic version. Server returns this; the client sends it back on
+    /// save. On mismatch (someone else wrote first) the server returns 409
+    /// and the client must refetch and retry. `#[serde(default)]` so files
+    /// written before versioning was added still load (they start at 0).
+    #[serde(default)]
+    pub version: u64,
     pub boards: indexmap::IndexMap<String, Board>,
-    #[serde(rename = "activeBoard")]
+    #[serde(rename = "activeBoard", default)]
     pub active_board: String,
 }
 
