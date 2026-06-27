@@ -21,7 +21,7 @@ gloo-utils = "0.3"
 gloo-timers = { version = "0.4", features = ["futures"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "serde", "clock"] }
 indexmap = { version = "2.2", features = ["serde"] }
-shared-assets = { path = "Assets/shared-assets/shared-rust", version = "3.0.0" }
+shared-assets = { path = "Assets/shared-assets/shared-rust", version = "3.0.0", default-features = false, features = ["frontend"] }
 
 [dependencies.web-sys]
 version = "=0.3.98"
