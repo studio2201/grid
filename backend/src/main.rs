@@ -129,19 +129,6 @@ async fn main() {
 
     let app = Router::new()
         .nest("/api", api_routes)
-        .route(
-            "/data/tasks.json",
-            get(handlers::get_tasks)
-                .post(handlers::save_tasks)
-                .layer(middleware::from_fn_with_state(
-                    state.clone(),
-                    auth::require_pin,
-                ))
-                .layer(middleware::from_fn_with_state(
-                    state.clone(),
-                    auth::rate_limit_middleware,
-                )),
-        )
         .route("/health", get(handlers::serve_health))
         .route("/favicon.svg", get(static_files::serve_favicon))
         .route("/favicon.png", get(static_files::serve_favicon_png))
