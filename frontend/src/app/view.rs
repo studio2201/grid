@@ -60,6 +60,7 @@ impl App {
                     theme_toggle_tooltip={tr.theme_toggle_tooltip.to_string()}
                     enable_translation={self.enable_translation}
                     enable_themes={self.enable_themes}
+                    enable_print={self.enable_print}
                 />
 
                 /* Main Body Wrapper */
