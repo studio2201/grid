@@ -1,9 +1,6 @@
-pub mod board;
-pub mod pin_entry;
-pub mod task_modal;
-
 use crate::app::App;
-use crate::header::Header;
+use crate::components::header::Header;
+use crate::components::footer::Footer;
 use crate::i18n::get_translations;
 use crate::types::*;
 use yew::prelude::*;
@@ -72,7 +69,7 @@ impl App {
                 </div>
 
                 /* Footer */
-                <crate::footer::Footer {show_version} {version} {show_github} {version_url}>
+                <Footer {show_version} {version} {show_github} {version_url}>
                     {
                         if let Some(t) = self.toasts.last() {
                             let cls = if t.is_error { "error" } else { "success" };
@@ -89,7 +86,7 @@ impl App {
                             }
                         }
                     }
-                </crate::footer::Footer>
+                </Footer>
 
                 /* Task Modal Dialog */
                 if self.show_task_modal {

@@ -1,6 +1,5 @@
 mod app;
-mod footer;
-mod header;
+mod components;
 mod i18n;
 mod storage;
 mod types;
