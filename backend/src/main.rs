@@ -1,5 +1,5 @@
 use axum::{
-    Router, middleware,
+    Router, middleware as axum_middleware,
     routing::{get, post},
 };
 use std::net::SocketAddr;
@@ -9,11 +9,12 @@ use tower_http::services::ServeDir;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod config;
+pub mod middleware;
 mod routes;
 mod state;
-mod static_files;
 
 use config::AppConfig;
+pub use middleware::static_files;
 use routes::{auth, tasks};
 use state::AppState;
 
@@ -105,24 +106,24 @@ async fn main() {
             .route(
                 "/tasks",
                 get(tasks::get_tasks).post(tasks::save_tasks).layer(
-                    middleware::from_fn_with_state(state.clone(), auth::require_pin),
+                    axum_middleware::from_fn_with_state(state.clone(), auth::require_pin),
                 ),
             )
             .route("/verify-pin", post(auth::verify_pin))
             .route("/logout", post(auth::logout))
             .route(
                 "/auth-check",
-                get(auth::auth_check).layer(middleware::from_fn_with_state(
+                get(auth::auth_check).layer(axum_middleware::from_fn_with_state(
                     state.clone(),
                     auth::require_pin,
                 )),
             )
             .route("/pin-required", get(auth::pin_required))
-            .layer(middleware::from_fn_with_state(
+            .layer(axum_middleware::from_fn_with_state(
                 state.clone(),
                 auth::rate_limit_middleware,
             ))
-            .layer(middleware::from_fn_with_state(
+            .layer(axum_middleware::from_fn_with_state(
                 state.clone(),
                 auth::origin_validation_middleware,
             ));
@@ -144,10 +145,10 @@ async fn main() {
         .route("/", get(tasks::serve_index))
         .route("/index.html", get(tasks::serve_index))
         .fallback_service(ServeDir::new("frontend/dist"))
-        .layer(middleware::from_fn(
+        .layer(axum_middleware::from_fn(
             shared_assets::middleware::security_headers_layer,
         ))
-        .layer(middleware::from_fn_with_state(
+        .layer(axum_middleware::from_fn_with_state(
             shared_assets::middleware::HstsState(server_config.clone()),
             shared_assets::middleware::hsts_layer,
         ))
