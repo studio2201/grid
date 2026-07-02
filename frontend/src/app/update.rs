@@ -4,6 +4,7 @@ use crate::storage::StorageService;
 use crate::types::*;
 use gloo_net::http::Request;
 use shared_frontend::theme::{Theme, mapping::Scheme};
+use shared_frontend::i18n::strings::{lookup, StringKey};
 use yew::prelude::*;
 
 impl App {
@@ -85,6 +86,7 @@ impl App {
                 self.is_authenticated = true;
                 self.error_message = None;
                 self.load_tasks(ctx);
+                self.show_toast(lookup(StringKey::StatusPinSuccess, self.language).to_string(), false, ctx);
                 true
             }
             Msg::VerifyPinFailure(err) => {
@@ -97,6 +99,7 @@ impl App {
                         err
                     });
                 }
+                self.show_toast(lookup(StringKey::StatusPinFailure, self.language).to_string(), true, ctx);
                 true
             }
             Msg::PinInputChanged(val) => {
@@ -105,10 +108,19 @@ impl App {
                 true
             }
             Msg::VerifyPin => self.handle_verify_pin(ctx),
-            Msg::Logout => self.handle_logout(ctx),
+            Msg::Logout => {
+                let res = self.handle_logout(ctx);
+                self.show_toast(lookup(StringKey::StatusLogout, self.language).to_string(), false, ctx);
+                res
+            }
             Msg::PrintBoard => {
                 if let Some(window) = web_sys::window() {
-                    let _ = window.print();
+                    let print_res = window.print();
+                    if print_res.is_ok() {
+                        self.show_toast(lookup(StringKey::StatusPrintSuccess, self.language).to_string(), false, ctx);
+                    } else {
+                        self.show_toast(lookup(StringKey::StatusPrintFailure, self.language).to_string(), true, ctx);
+                    }
                 }
                 false
             }
@@ -117,7 +129,11 @@ impl App {
                 StorageService::set_item("language", lang.code());
                 true
             }
-            Msg::ToggleTheme => self.handle_toggle_theme(),
+            Msg::ToggleTheme => {
+                let res = self.handle_toggle_theme();
+                self.show_toast(lookup(StringKey::StatusThemeChanged, self.language).to_string(), false, ctx);
+                res
+            }
             Msg::OpenAddTaskModal(col_id) => {
                 self.task_modal_column_id = Some(col_id);
                 self.task_modal_index = None;
@@ -159,6 +175,19 @@ impl App {
                 self.toasts.retain(|t| t.id != id);
                 true
             }
+            Msg::ShowToast(message, is_error) => {
+                self.show_toast(message, is_error, ctx);
+                true
+            }
+            Msg::OnlineStatusChanged(online) => {
+                let (msg_key, is_error) = if online {
+                    (StringKey::StatusOnline, false)
+                } else {
+                    (StringKey::StatusOffline, true)
+                };
+                self.show_toast(lookup(msg_key, self.language).to_string(), is_error, ctx);
+                true
+            }
         }
     }
 
@@ -192,21 +221,29 @@ impl App {
         });
     }
 
-    pub fn save_tasks_backend(&self, _ctx: &Context<Self>) {
+    pub fn save_tasks_backend(&self, ctx: &Context<Self>) {
         if let Some(ref data) = self.board_data {
             let payload = data.clone();
+            let link = ctx.link().clone();
+            let lang = self.language;
+            link.send_message(Msg::ShowToast(lookup(StringKey::StatusSaving, lang).to_string(), false));
             wasm_bindgen_futures::spawn_local(async move {
-                // POST to /api/tasks. The backend's optimistic-concurrency
-                // check compares payload.version to the on-disk version.
-                // On 409 Conflict we currently fire-and-forget; a richer
-                // UX would surface the conflict via a toast and refetch.
-                // TODO: surface 409 to the user via Msg::SaveTasksConflict
-                // and trigger a refetch.
-                let _ = Request::post("/api/tasks")
+                match Request::post("/api/tasks")
                     .json(&payload)
                     .unwrap()
                     .send()
-                    .await;
+                    .await
+                {
+                    Ok(resp) if resp.status() == 200 => {
+                        link.send_message(Msg::ShowToast(lookup(StringKey::StatusSaved, lang).to_string(), false));
+                    }
+                    Ok(resp) if resp.status() == 409 => {
+                        link.send_message(Msg::ShowToast(lookup(StringKey::StatusConflictError, lang).to_string(), true));
+                    }
+                    _ => {
+                        link.send_message(Msg::ShowToast(lookup(StringKey::StatusSaveError, lang).to_string(), true));
+                    }
+                }
             });
         }
     }

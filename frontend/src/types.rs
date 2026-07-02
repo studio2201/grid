@@ -63,4 +63,6 @@ pub enum Msg {
 
     // Toast
     DismissToast(usize),
+    ShowToast(String, bool),
+    OnlineStatusChanged(bool),
 }

@@ -51,7 +51,7 @@ impl App {
                     logout_tooltip={tr.logout_tooltip.to_string()}
                     on_print={if self.enable_print { Some(ctx.link().callback(|_| Msg::PrintBoard)) } else { None }}
                     print_tooltip={tr.print_tooltip.to_string()}
-                    print_disabled={disable_print || !self.enable_print}
+                    print_disabled={disable_print || !self.enable_print || (self.pin_required && !self.is_authenticated)}
                     theme_toggle_tooltip={tr.theme_toggle_tooltip.to_string()}
                     enable_translation={self.enable_translation}
                     enable_themes={self.enable_themes}

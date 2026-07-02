@@ -1,10 +1,12 @@
 use crate::app::App;
 use crate::i18n::get_translations;
+use shared_frontend::i18n::strings::{lookup, StringKey};
 use yew::prelude::*;
 
 impl App {
     pub fn handle_save_task(&mut self, ctx: &Context<Self>) -> bool {
         if self.task_modal_text.trim().is_empty() {
+            self.show_toast(lookup(StringKey::StatusValidationError, self.language).to_string(), true, ctx);
             return false;
         }
         if let Some(ref mut data) = self.board_data
