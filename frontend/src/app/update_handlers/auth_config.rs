@@ -1,7 +1,7 @@
 use crate::app::App;
-use crate::storage::StorageService;
 use crate::types::*;
 use gloo_net::http::Request;
+use shared_frontend::storage::StorageService;
 use shared_frontend::theme::Theme;
 use yew::prelude::*;
 
@@ -148,7 +148,7 @@ impl App {
             Theme::Crateria => Theme::Brinstar,
         };
         self.theme = next.name().to_string();
-        StorageService::set_item("theme", next.name());
+        StorageService.set_item("theme", next.name());
 
         if let Some(window) = web_sys::window()
             && let Some(document) = window.document()

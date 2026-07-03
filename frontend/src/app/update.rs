@@ -1,17 +1,19 @@
 use crate::app::App;
 use crate::i18n::get_translations;
-use crate::storage::StorageService;
 use crate::types::*;
 use gloo_net::http::Request;
+use shared_frontend::storage::StorageService;
 use shared_frontend::theme::{Theme, mapping::Scheme};
 use shared_frontend::i18n::strings::{lookup, StringKey};
 use yew::prelude::*;
 
 impl App {
     pub fn create_app(ctx: &Context<Self>) -> Self {
-        let raw_theme = StorageService::get_item("theme", Theme::default().name());
+        let raw_theme = StorageService.get_item("theme");
         let theme = if let Some(scheme) = Scheme::from_id(&raw_theme) {
             scheme.to_theme().name().to_string()
+        } else if raw_theme.is_empty() {
+            Theme::default().name().to_string()
         } else {
             Theme::from_name(&raw_theme)
                 .unwrap_or_default()
@@ -19,10 +21,11 @@ impl App {
                 .to_string()
         };
         if theme != raw_theme {
-            StorageService::set_item("theme", &theme);
+            StorageService.set_item("theme", &theme);
         }
 
-        let language = Language::from_code(&StorageService::get_item("language", "en"));
+        let stored_lang = StorageService.get_item("language");
+        let language = Language::from_code(&if stored_lang.is_empty() { "en".to_string() } else { stored_lang });
 
         if let Some(window) = web_sys::window()
             && let Some(document) = window.document()
@@ -126,7 +129,7 @@ impl App {
             }
             Msg::SwitchLanguage(lang) => {
                 self.language = lang;
-                StorageService::set_item("language", lang.code());
+                StorageService.set_item("language", lang.code());
                 true
             }
             Msg::ToggleTheme => {
