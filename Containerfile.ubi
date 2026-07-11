@@ -64,7 +64,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 LABEL org.opencontainers.image.title="grid" \
       org.opencontainers.image.description="grid (UBI9 minimal pilot)" \
-      org.opencontainers.image.source="https://github.com/UberMetroid/grid" \
+      org.opencontainers.image.source="https://github.com/etecoons/grid" \
       org.opencontainers.image.base.name="registry.access.redhat.com/ubi9/ubi-minimal"
 
 # ca-certificates for HTTPS outbound; wget for HEALTHCHECK.

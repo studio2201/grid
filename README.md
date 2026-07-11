@@ -1,4 +1,4 @@
-# Grid — High-Performance Kanban Board <img src="https://raw.githubusercontent.com/UberMetroid/unraid-templates/main/icons/grid.png" width="48" height="48" alt="grid logo" align="right">
+# Grid — High-Performance Kanban Board <img src="https://raw.githubusercontent.com/etecoons/unraid-apps/main/icons/grid.png" width="48" height="48" alt="grid logo" align="right">
 
 Grid is a clean, secure, and lightning-fast self-hosted Kanban board application. Built with a high-performance Rust (Axum/Tokio) backend and a WebAssembly (Yew) frontend.
 

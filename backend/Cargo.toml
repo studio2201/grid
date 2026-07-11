@@ -1,17 +1,17 @@
 [package]
 name = "backend"
-version = "3.0.21"
+version = "3.0.22"
 edition = "2024"
 authors = ["UberMetroid"]
 license = "Apache-2.0"
-repository = "https://github.com/UberMetroid/Grid"
-homepage = "https://github.com/UberMetroid/Grid"
+repository = "https://github.com/etecoons/Grid"
+homepage = "https://github.com/etecoons/Grid"
 description = "Axum backend service for Grid."
 readme = "../README.md"
 
 [dependencies]
-shared-core = { git = "https://github.com/UberMetroid/shared-assets", tag = "v3.0.19" }
-shared-backend = { git = "https://github.com/UberMetroid/shared-assets", tag = "v3.0.19" }
+shared-core = { git = "https://github.com/etecoons/shared-assets.git", tag = "v3.0.20" }
+shared-backend = { git = "https://github.com/etecoons/shared-assets.git", tag = "v3.0.20" }
 tokio = { version = "1.36", features = ["macros", "rt-multi-thread", "net", "time", "io-util"] }
 axum = "0.8"
 tower-http = { version = "0.6", features = ["fs", "cors", "trace"] }
