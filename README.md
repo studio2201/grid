@@ -17,7 +17,7 @@ Grid is a clean, secure, and lightning-fast self-hosted Kanban board application
 
 ---
 
-## 🟢 Key Features
+## Key Features
 * **Kanban Board**: Drag-and-drop task tracking cards across custom workflow columns.
 * **Local Database Sync**: Reliable task persistence with quick backups.
 * **Access PIN Security**: Lock down the interface with an optional numerical PIN for absolute privacy.
