@@ -1,28 +1,34 @@
+<p align="center">
+  <a href="https://github.com/etecoons">
+    <img src="assets/header.jpg" alt="etecoons banner" width="100%">
+  </a>
+</p>
+
 # Grid — High-Performance Kanban Board <img src="https://raw.githubusercontent.com/etecoons/unraid-apps/main/icons/grid.png" width="48" height="48" alt="grid logo" align="right">
 
 Grid is a clean, secure, and lightning-fast self-hosted Kanban board application. Built with a high-performance Rust (Axum/Tokio) backend and a WebAssembly (Yew) frontend.
 
 ---
 
-## 🏛️ Architecture & Stack
-*   **Frontend**: Yew (WASM)
-*   **Backend**: Axum (Rust) / Tokio
-*   **Deployment**: UBI container (Red Hat UBI9) on Docker Hub / Unraid / Podman / Docker Compose
+## Architecture & Stack
+* **Frontend**: Yew (WASM)
+* **Backend**: Axum (Rust) / Tokio
+* **Deployment**: UBI container (Red Hat UBI9) on Docker Hub / Unraid / Podman / Docker Compose
 
 ---
 
 ## 🟢 Key Features
-*   **Kanban Board**: Drag-and-drop task tracking cards across custom workflow columns.
-*   **Local Database Sync**: Reliable task persistence with quick backups.
-*   **Access PIN Security**: Lock down the interface with an optional numerical PIN for absolute privacy.
-*   **Dynamic Themes**: Super Metroid UI themes (Crateria, Brinstar, Norfair, Wrecked Ship, Maridia, Tourian).
-*   **Internationalization**: Built-in multilingual translation selector support.
-*   **Print Optimization**: Customized print stylesheet layout and print header action button.
-*   **Performance First**: Tiny resource footprint, zero external JS engine dependencies, and rapid page load speeds.
+* **Kanban Board**: Drag-and-drop task tracking cards across custom workflow columns.
+* **Local Database Sync**: Reliable task persistence with quick backups.
+* **Access PIN Security**: Lock down the interface with an optional numerical PIN for absolute privacy.
+* **Dynamic Themes**: Super Metroid UI themes (Crateria, Brinstar, Norfair, Wrecked Ship, Maridia, Tourian).
+* **Internationalization**: Built-in multilingual translation selector support.
+* **Print Optimization**: Customized print stylesheet layout and print header action button.
+* **Performance First**: Tiny resource footprint, zero external JS engine dependencies, and rapid page load speeds.
 
 ---
 
-## 💾 Deployment & Installation
+## Deployment & Installation
 
 ### Container images (Docker Hub)
 
@@ -48,25 +54,25 @@ Create a `docker-compose.yml` file with the following service definition:
 
 ```yaml
 services:
-  grid:
-    image: etecoons/grid:latest
-    container_name: grid
-    restart: unless-stopped
-    ports:
-      - ${PORT:-4405}:4405
-    volumes:
-      - ${GRID_DATA_PATH:-./data}:/app/data
-    environment:
-      PORT: 4405
-      SITE_TITLE: ${GRID_SITE_TITLE:-Grid}
-      GRID_PIN: ${GRID_PIN:-}
-      BASE_URL: ${GRID_BASE_URL:-http://localhost:4405}
-      ALLOWED_ORIGINS: ${GRID_ALLOWED_ORIGINS:-*}
-      TZ: ${TZ:-UTC}
-      ENABLE_TRANSLATION: ${ENABLE_TRANSLATION:-false}
-      ENABLE_THEMES: ${ENABLE_THEMES:-true}
-      ENABLE_PRINT: ${ENABLE_PRINT:-true}
-      MAX_ATTEMPTS: ${MAX_ATTEMPTS:-5}
+ grid:
+ image: etecoons/grid:latest
+ container_name: grid
+ restart: unless-stopped
+ ports:
+ - ${PORT:-4405}:4405
+ volumes:
+ - ${GRID_DATA_PATH:-./data}:/app/data
+ environment:
+ PORT: 4405
+ SITE_TITLE: ${GRID_SITE_TITLE:-Grid}
+ GRID_PIN: ${GRID_PIN:-}
+ BASE_URL: ${GRID_BASE_URL:-http://localhost:4405}
+ ALLOWED_ORIGINS: ${GRID_ALLOWED_ORIGINS:-*}
+ TZ: ${TZ:-UTC}
+ ENABLE_TRANSLATION: ${ENABLE_TRANSLATION:-false}
+ ENABLE_THEMES: ${ENABLE_THEMES:-true}
+ ENABLE_PRINT: ${ENABLE_PRINT:-true}
+ MAX_ATTEMPTS: ${MAX_ATTEMPTS:-5}
 ```
 
 ### Build the UBI image locally
@@ -76,10 +82,10 @@ Requires [Podman](https://podman.io/) (or Docker) and network access to pull bas
 ```bash
 # From the repository root
 podman build --format docker -f Containerfile.ubi \
-  -t docker.io/etecoons/grid:3.0.21 \
-  -t docker.io/etecoons/grid:latest \
-  -t docker.io/etecoons/grid:ubi \
-  .
+ -t docker.io/etecoons/grid:3.0.21 \
+ -t docker.io/etecoons/grid:latest \
+ -t docker.io/etecoons/grid:ubi \
+ .
 
 # Optional: push all three tags
 podman push docker.io/etecoons/grid:3.0.21
@@ -89,7 +95,7 @@ podman push docker.io/etecoons/grid:ubi
 
 ---
 
-## ⚙️ Configuration Options
+## Configuration Options
 
 | Environment Variable | Description | Default |
 | :--- | :--- | :--- |
@@ -113,7 +119,7 @@ podman push docker.io/etecoons/grid:ubi
 
 ---
 
-## 🛠️ Local Development
+## Local Development
 
 Ensure you have the Rust toolchain and Trunk installed.
 
@@ -133,5 +139,5 @@ cd backend && cargo run
 
 ---
 
-## 📄 License
+## License
 Licensed under the [Apache License, Version 2.0](LICENSE). Copyright 2026 etecoons.
