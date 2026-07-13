@@ -190,8 +190,7 @@ pub async fn save_tasks(Json(payload): Json<BoardData>) -> impl IntoResponse {
     };
 
     let path = tasks_file();
-    match tokio::task::spawn_blocking(move || atomic_write(&path, serialized.as_bytes())).await
-    {
+    match tokio::task::spawn_blocking(move || atomic_write(&path, serialized.as_bytes())).await {
         Ok(Ok(())) => Json(serde_json::json!({
             "ok": true,
             "version": new_data.version,
