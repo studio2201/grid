@@ -77,7 +77,7 @@ impl App {
     }
 
     pub fn handle_fetch_tasks_success(&mut self, ctx: &Context<Self>, data: BoardData) -> bool {
-        let (normalized, needs_save) = crate::utils::normalize_board_data(data);
+        let (normalized, needs_save) = crate::board_normalizer::normalize_board_data(data);
         self.board_data = Some(normalized.clone());
         self.active_board_id = normalized.active_board.clone();
         if needs_save {
