@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Grid
+# <img src="assets/icon.png" width="32" height="32" valign="middle"> Grid
 
 [![CI](https://github.com/etecoons/grid/actions/workflows/ci.yml/badge.svg)](https://github.com/etecoons/grid/actions/workflows/ci.yml)
 
