@@ -16,13 +16,20 @@ use types::{Board, BoardData, Column};
 
 static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 
-const TASKS_FILE: &str = "data/tasks.json";
+fn tasks_file() -> std::path::PathBuf {
+    let data_dir = std::env::var("GRID_DATA_DIR")
+        .or_else(|_| std::env::var("DATA_DIR"))
+        .unwrap_or_else(|_| "data".to_string());
+    std::path::PathBuf::from(data_dir).join("tasks.json")
+}
 
 pub fn initialize_storage() {
-    if !StdPath::new("data").exists() {
-        let _ = fs::create_dir_all("data");
+    let tasks_path = tasks_file();
+    if let Some(parent) = tasks_path.parent() {
+        if !parent.exists() {
+            let _ = fs::create_dir_all(parent);
+        }
     }
-    let tasks_path = StdPath::new(TASKS_FILE);
     if !tasks_path.exists() {
         // Seed with a sensible default. `version: 0` so the first client
         // save goes through `0 -> 1` cleanly.
@@ -62,7 +69,7 @@ pub fn initialize_storage() {
             active_board: "work".to_string(),
         };
         let _ = atomic_write(
-            TASKS_FILE,
+            &tasks_path,
             serde_json::to_string_pretty(&seed).unwrap().as_bytes(),
         );
     }
@@ -71,9 +78,9 @@ pub fn initialize_storage() {
 /// Atomic write: write to a sibling temp file, fsync, then rename over the
 /// destination. A crash mid-write leaves the original file intact rather
 /// than a half-written `tasks.json` that the frontend can't deserialize.
-fn atomic_write(path: &str, bytes: &[u8]) -> std::io::Result<()> {
+fn atomic_write(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
-    let tmp = format!("{path}.tmp");
+    let tmp = path.with_extension("tmp");
     {
         let mut f = fs::File::create(&tmp)?;
         f.write_all(bytes)?;
@@ -139,7 +146,7 @@ pub async fn save_tasks(Json(payload): Json<BoardData>) -> impl IntoResponse {
     }
 
     // Load current state to check version.
-    let current: BoardData = match tokio::fs::read_to_string(TASKS_FILE).await {
+    let current: BoardData = match tokio::fs::read_to_string(tasks_file()).await {
         Ok(s) => match serde_json::from_str(&s) {
             Ok(b) => b,
             Err(e) => {
@@ -182,7 +189,8 @@ pub async fn save_tasks(Json(payload): Json<BoardData>) -> impl IntoResponse {
         }
     };
 
-    match tokio::task::spawn_blocking(move || atomic_write(TASKS_FILE, serialized.as_bytes())).await
+    let path = tasks_file();
+    match tokio::task::spawn_blocking(move || atomic_write(&path, serialized.as_bytes())).await
     {
         Ok(Ok(())) => Json(serde_json::json!({
             "ok": true,
