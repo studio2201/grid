@@ -25,10 +25,8 @@ fn tasks_file() -> std::path::PathBuf {
 
 pub fn initialize_storage() {
     let tasks_path = tasks_file();
-    if let Some(parent) = tasks_path.parent() {
-        if !parent.exists() {
-            let _ = fs::create_dir_all(parent);
-        }
+    if let Some(parent) = tasks_path.parent().filter(|p| !p.exists()) {
+        let _ = fs::create_dir_all(parent);
     }
     if !tasks_path.exists() {
         // Seed with a sensible default. `version: 0` so the first client
