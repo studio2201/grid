@@ -17,24 +17,6 @@ pub struct VerifyPinPayload {
     pub pin: Option<String>,
 }
 
-pub fn generate_session_id() -> String {
-    use std::fs::File;
-    use std::io::Read;
-    let file = File::open("/dev/urandom").ok();
-    let mut bytes = [0u8; 16];
-    if let Some(mut f) = file
-        && f.read_exact(&mut bytes).is_ok()
-    {
-        return bytes.iter().map(|b| format!("{:02x}", b)).collect();
-    }
-    let random_val = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(random_val.to_string().as_bytes());
-    let result = hasher.finalize();
-    result.iter().map(|b| format!("{:02x}", b)).collect()
-}
-
 pub async fn verify_pin(
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -87,31 +69,27 @@ pub async fn verify_pin(
     if constant_time_eq::constant_time_eq(pin_str.as_bytes(), expected_pin.as_bytes()) {
         reset_attempts(&ip_str);
 
-        let session_id = generate_session_id();
+        let session_id = shared_backend::session_id::generate_session_id();
         state
             .active_sessions
             .write()
             .await
             .insert(session_id.clone());
 
-        let cookie_max_age =
-            Duration::from_secs((state.config.server.cookie_max_age_hours * 3600) as u64);
-        let secure = headers
-            .get("x-forwarded-proto")
-            .and_then(|v| v.to_str().ok())
-            .map(|v| v.eq_ignore_ascii_case("https"))
-            .unwrap_or_else(|| state.config.server.base_url.starts_with("https"));
-
-        let cookie_val = format!(
-            "{}={}; Path=/; HttpOnly; SameSite=Strict; Max-Age={}{}",
-            COOKIE_NAME,
-            session_id,
-            cookie_max_age.as_secs(),
-            if secure { "; Secure" } else { "" }
+        let secure = shared_backend::cookie_auth::cookie_should_be_secure(
+            &headers,
+            &state.config.server.base_url,
         );
 
+        let cookie = shared_backend::cookie_auth::build_cookie(
+            COOKIE_NAME,
+            &session_id,
+            state.config.server.cookie_max_age_hours,
+            secure,
+        );
+        let cookie_str = cookie.to_string();
         let mut headers = HeaderMap::new();
-        if let Ok(val) = header::HeaderValue::from_str(&cookie_val) {
+        if let Ok(val) = header::HeaderValue::from_str(&cookie_str) {
             headers.insert(header::SET_COOKIE, val);
         }
         (
