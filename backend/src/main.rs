@@ -18,9 +18,11 @@ use routes::{auth, tasks};
 use state::AppState;
 
 #[tokio::main]
+
+
+
 mod cookie_auth;
 mod session_id;
-
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     shared_backend::tracing_init::init_tracing(
         shared_backend::tracing_init::default_log_dir().as_deref(),
