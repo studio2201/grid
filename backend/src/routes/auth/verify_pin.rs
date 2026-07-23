@@ -17,16 +17,6 @@ pub struct VerifyPinPayload {
     pub pin: Option<String>,
 }
 
-pub fn generate_session_id() -> String {
-    use std::fs::File;
-    use std::io::Read;
-    let file = File::open("/dev/urandom").ok();
-    let mut bytes = [0u8; 16];
-    if let Some(mut f) = file
-        && f.read_exact(&mut bytes).is_ok()
-    {
-        return bytes.iter().map(|b| format!("{:02x}", b)).collect();
-    }
     let random_val = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
@@ -87,7 +77,7 @@ pub async fn verify_pin(
     if constant_time_eq::constant_time_eq(pin_str.as_bytes(), expected_pin.as_bytes()) {
         reset_attempts(&ip_str);
 
-        let session_id = generate_session_id();
+        let session_id = shared_backend::session_id::generate_session_id();
         state
             .active_sessions
             .write()
@@ -102,23 +92,18 @@ pub async fn verify_pin(
             .map(|v| v.eq_ignore_ascii_case("https"))
             .unwrap_or_else(|| state.config.server.base_url.starts_with("https"));
 
-        let cookie_val = format!(
-            "{}={}; Path=/; HttpOnly; SameSite=Strict; Max-Age={}{}",
+                let cookie = shared_backend::cookie_auth::build_cookie(
             COOKIE_NAME,
-            session_id,
-            cookie_max_age.as_secs(),
-            if secure { "; Secure" } else { "" }
+            &session_id,
+            state.config.cookie_max_age_hours,
+            secure,
         );
-
+        let cookie_str = cookie.to_string();
         let mut headers = HeaderMap::new();
-        if let Ok(val) = header::HeaderValue::from_str(&cookie_val) {
+        if let Ok(val) = header::HeaderValue::from_str(&cookie_str) {
             headers.insert(header::SET_COOKIE, val);
         }
-        (
-            StatusCode::OK,
-            headers,
-            Json(serde_json::json!({ "success": true })),
-        )
+        (StatusCode::OK, headers, Json(serde_json::json!({ "success": true })))\
             .into_response()
     } else {
         let attempt = record_attempt(&ip_str);
