@@ -1,65 +1,101 @@
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/studio2201/.github/master/profile/assets/grid.png" width="48" height="48" valign="middle"> Grid
+</h1>
+
 <p align="center">
-  <a href="https://github.com/studio2201">
-    <img src="assets/header.jpg" alt="studio2201 banner" width="100%">
-  </a>
+  <b>Fast, secure self-hosted visual kanban board and task manager written in Rust.</b>
 </p>
 
-# <img src="assets/icon.png" width="32" height="32" valign="middle"> Grid
+---
 
-Collaborative, lightweight kanban board and tasks grid organizer.
+### Instant One-Line Install (Docker Container)
 
-## Quick Start (Docker)
+Run the official zero-dependency container on port 4401:
 
-Pull and run the official Docker container:
 ```bash
-docker run -d \
-  -p 4405:4405 \
-  -v /path/to/appdata:/config \
-  -e GRID_PIN=your_secret_pin \
-  ghcr.io/studio2201/grid:latest
+docker run -d --name grid -p 4401:4401 -v /mnt/user/appdata/grid:/config ghcr.io/studio2201/grid:latest
 ```
 
-## Configuration
+Open your browser to `http://localhost:4401` to start managing boards immediately.
 
-The service can be customized using the following container environment variables:
+---
+
+### One-Line Install (Native Package Manager)
+
+On Debian, Ubuntu, Fedora, or RHEL:
+
+```bash
+curl -fsSL https://studio2201.github.io/packages/install.sh | sudo bash
+```
+
+---
+
+### Unraid NAS Deployment
+
+Deploy via the official Unraid Template:
+
+1. Copy [`grid.xml`](grid.xml) to your Unraid flash drive under `/boot/config/plugins/dockerMan/templates-user/`.
+2. Open **Docker** -> **Add Container** -> Select **grid** from the template dropdown.
+3. Click **Apply**.
+
+---
+
+### Environment Configuration
+
+The backend service can be customized using the following environment variables:
 
 | Variable | Description | Default |
-| :--- | :--- | :--- |
-| `PORT` | The network port the web server binds to | `4405` |
-| `GRID_PIN` | Security PIN code required for client authentication | (None) |
-| `GRID_DATA_DIR` | Directory path where persistent data is stored | `/config` |
+| :--- | :--- | :---: |
+| `PORT` | Network port the web server binds to | `4401` |
+| `GRID_PIN` | Security PIN required for application access | *(Disabled)* |
+| `GRID_DATA_DIR` | Directory path for persistent data and boards | `/config` |
 | `GRID_ALLOWED_ORIGINS` | CORS allowed origins list (comma-separated) | `*` |
-| `TZ` | System timezone | `UTC` |
-| `TRUST_PROXY` | Whether to honor upstream reverse proxy headers | `false` |
-| `TRUSTED_PROXY_IPS` | Comma-separated CIDR/IP list of trusted reverse proxies | (None) |
-| `LOG_DIR` | Directory where diagnostic log files are written | (Disabled) |
-| `LOG_LEVEL` | Logging verbosity filter (`error`, `warn`, `info`, `debug`) | `info` |
+| `TRUST_PROXY` | Honor reverse proxy headers (`X-Forwarded-For`) | `false` |
+| `TRUSTED_PROXY_IPS` | Comma-separated CIDR list of trusted reverse proxies | *(None)* |
+| `LOG_LEVEL` | Tracing filter (`error`, `warn`, `info`, `debug`) | `info` |
 
-## Administration Console (CLI & TUI)
+---
 
-Each container includes a built-in admin tool located in the system path as `grid`. To open the console, execute a shell inside the container:
+### Administration CLI & TUI Dashboard
+
+Every container and package includes a built-in administration utility (`grid`).
+
+Launch interactive TUI dashboard:
 ```bash
-docker exec -it <container-name> sh
+docker exec -it grid grid tui
 ```
-Then, run `grid` to manage the application:
+
+System diagnostics and self-healing check:
 ```bash
-grid [command]
+docker exec -it grid grid doctor
 ```
-Running `grid` without arguments or running `grid tui` launches the interactive terminal user interface.
 
-### CLI Commands
+CLI Command Reference:
+- `grid tui` — Interactive terminal user interface.
+- `grid doctor` — Diagnoses storage permissions, ports, and database health.
+- `grid status` — Displays network configuration and security parameters.
+- `grid data stats` — Shows storage utilization and entry metrics.
+- `grid data list` — Lists kanban boards and task items.
 
-| Command | Aliases | Description |
-| :--- | :--- | :--- |
-| `tui` | (Default) | Launch the interactive arrow-key TUI panel dashboard |
-| `doctor` | `check`, `diagnose` | Perform health diagnostics on directories, port, and databases |
-| `start` | `up`, `run` | Launch the main web server process if stopped |
-| `stop` | `down`, `terminate`, `close` | Gracefully shut down the web server (stops the container) |
-| `restart` | `reload` | Perform a stop and start cycle on the server process |
-| `status` | `info` | Display current network and settings configurations |
-| `env` | | List the loaded environment variables for the service |
-| `version` | `-v`, `--version` | Display the compiled version of the application |
-| `data stats` | `data size`, `data info` | View storage file sizes and entry counts |
-| `data list` | `data show`, `data view` | Show records (tasks, high scores, etc.) stored in the database |
-| `data clear` | `data prune`, `data reset` | Reset the database to a clean, empty state (interactive) |
-| `help` | `-h`, `--help` | Show the help information page |
+---
+
+### Architecture & Security
+
+- **Axum Web Backend**: High-concurrency async HTTP/JSON runtime built on Tokio.
+- **Yew WebAssembly Frontend**: Type-safe client bundle running natively in browser WASM runtime.
+- **Strict Input & Path Sanitization**: Path canonicalization guards preventing directory traversal escapes.
+- **Fail-Closed Security PIN Authentication**: Rate-limited brute force protection with automatic lockout timers.
+
+---
+
+### License
+
+Distributed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <a href="https://github.com/studio2201/grid">
+    <img src="assets/grid-header.jpg" alt="studio2201 banner" width="100%">
+  </a>
+</p>

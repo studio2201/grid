@@ -26,8 +26,7 @@ impl App {
         } else if let Some(ref data) = self.board_data {
             if let Some(board) = data.boards.get(&self.active_board_id) {
                 self.render_board(board, ctx)
-            } else if !data.boards.is_empty() {
-                let fallback_board = data.boards.values().next().unwrap();
+            } else if let Some(fallback_board) = data.boards.values().next() {
                 self.render_board(fallback_board, ctx)
             } else {
                 html! { <div class="loading-spinner">{"Initializing board..."}</div> }

@@ -18,7 +18,7 @@ use routes::{auth, tasks};
 use state::AppState;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     shared_backend::tracing_init::init_tracing(
         shared_backend::tracing_init::default_log_dir().as_deref(),
     );
@@ -111,11 +111,12 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
     tracing::info!("Starting server on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .await
-    .unwrap();
+    .await?;
+
+    Ok(())
 }

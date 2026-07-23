@@ -58,8 +58,8 @@ impl App {
             && let Some(board) = data.boards.get_mut(&self.active_board_id)
             && let Some(col) = board.columns.get_mut(&col_id)
             && idx < col.tasks.len()
+            && let Some(window) = web_sys::window()
         {
-            let window = web_sys::window().unwrap();
             let tr = get_translations(self.language);
             let message = format!("{}\n\n\"{}\"", tr.confirm_delete, col.tasks[idx]);
             if window.confirm_with_message(&message).unwrap_or(false) {
@@ -72,13 +72,10 @@ impl App {
     }
 
     pub fn handle_drag_start(&mut self, col_id: String, idx: usize, e: web_sys::DragEvent) -> bool {
-        self.dragged_column_id = Some(col_id);
+        self.dragged_column_id = Some(col_id.clone());
         self.dragged_task_index = Some(idx);
         if let Some(dt) = e.data_transfer() {
-            let _ = dt.set_data(
-                "text/plain",
-                &format!("{}:{}", self.dragged_column_id.as_ref().unwrap(), idx),
-            );
+            let _ = dt.set_data("text/plain", &format!("{}:{}", col_id, idx));
             dt.set_effect_allowed("move");
         }
         false

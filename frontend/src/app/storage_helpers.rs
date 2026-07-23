@@ -42,29 +42,26 @@ impl App {
                 false,
             ));
             wasm_bindgen_futures::spawn_local(async move {
-                match Request::post("/api/tasks")
-                    .json(&payload)
-                    .unwrap()
-                    .send()
-                    .await
-                {
-                    Ok(resp) if resp.status() == 200 => {
-                        link.send_message(Msg::ShowToast(
-                            lookup(StringKey::StatusSaved, lang).to_string(),
-                            false,
-                        ));
-                    }
-                    Ok(resp) if resp.status() == 409 => {
-                        link.send_message(Msg::ShowToast(
-                            lookup(StringKey::StatusConflictError, lang).to_string(),
-                            true,
-                        ));
-                    }
-                    _ => {
-                        link.send_message(Msg::ShowToast(
-                            lookup(StringKey::StatusSaveError, lang).to_string(),
-                            true,
-                        ));
+                if let Ok(req) = Request::post("/api/tasks").json(&payload) {
+                    match req.send().await {
+                        Ok(resp) if resp.status() == 200 => {
+                            link.send_message(Msg::ShowToast(
+                                lookup(StringKey::StatusSaved, lang).to_string(),
+                                false,
+                            ));
+                        }
+                        Ok(resp) if resp.status() == 409 => {
+                            link.send_message(Msg::ShowToast(
+                                lookup(StringKey::StatusConflictError, lang).to_string(),
+                                true,
+                            ));
+                        }
+                        _ => {
+                            link.send_message(Msg::ShowToast(
+                                lookup(StringKey::StatusSaveError, lang).to_string(),
+                                true,
+                            ));
+                        }
                     }
                 }
             });

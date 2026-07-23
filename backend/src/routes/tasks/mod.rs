@@ -66,10 +66,9 @@ pub fn initialize_storage() {
             boards,
             active_board: "work".to_string(),
         };
-        let _ = atomic_write(
-            &tasks_path,
-            serde_json::to_string_pretty(&seed).unwrap().as_bytes(),
-        );
+        if let Ok(json_str) = serde_json::to_string_pretty(&seed) {
+            let _ = atomic_write(&tasks_path, json_str.as_bytes());
+        }
     }
 }
 

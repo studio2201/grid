@@ -92,29 +92,26 @@ impl App {
         let link = ctx.link().clone();
         wasm_bindgen_futures::spawn_local(async move {
             let body = serde_json::json!({ "pin": pin });
-            match Request::post("/api/verify-pin")
-                .json(&body)
-                .unwrap()
-                .send()
-                .await
-            {
-                Ok(resp) if resp.status() == 200 => {
-                    link.send_message(Msg::VerifyPinSuccess);
-                }
-                Ok(resp) => {
-                    if let Ok(err_json) = resp.json::<serde_json::Value>().await {
-                        let msg = err_json
-                            .get("error")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("Invalid PIN")
-                            .to_string();
-                        link.send_message(Msg::VerifyPinFailure(msg));
-                    } else {
-                        link.send_message(Msg::VerifyPinFailure("Invalid PIN".to_string()));
+            if let Ok(req) = Request::post("/api/verify-pin").json(&body) {
+                match req.send().await {
+                    Ok(resp) if resp.status() == 200 => {
+                        link.send_message(Msg::VerifyPinSuccess);
                     }
-                }
-                Err(_) => {
-                    link.send_message(Msg::VerifyPinFailure("Connection error".to_string()));
+                    Ok(resp) => {
+                        if let Ok(err_json) = resp.json::<serde_json::Value>().await {
+                            let msg = err_json
+                                .get("error")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("Invalid PIN")
+                                .to_string();
+                            link.send_message(Msg::VerifyPinFailure(msg));
+                        } else {
+                            link.send_message(Msg::VerifyPinFailure("Invalid PIN".to_string()));
+                        }
+                    }
+                    Err(_) => {
+                        link.send_message(Msg::VerifyPinFailure("Connection error".to_string()));
+                    }
                 }
             }
         });
